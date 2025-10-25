@@ -1,0 +1,18 @@
+# mediamtx.yml — compatible with most 2023–2025 Mediamtx builds (Bluenviron)
+# Confirmed to work on Raspberry Pi 5
+
+# --- Protocol toggles ---
+rtsp: yes         # Enable RTSP server (port 8554 by default)
+hls: yes          # Enable HLS output (port 8888)
+webrtc: yes       # Enable WebRTC signaling (port 8889)
+
+# --- Logging ---
+logLevel: info
+
+# --- Paths (streams) ---
+paths:
+  camera:
+    source: rtsp://192.168.100.1:7441/ps5dRx9MVVpqG7iN
+#    source: rtsp://192.168.100.1:7441/ps5dRx9MVVpqG7iN?enableSrtp
+#    sourceFingerprint: any
+    sourceOnDemand: yes

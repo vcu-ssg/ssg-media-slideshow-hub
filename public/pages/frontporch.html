@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Front Porch Camera</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      border: none;
+      background: black;
+      display: none; /* hidden until ready */
+    }
+    #loading {
+      color: white;
+      font-family: sans-serif;
+      font-size: 1.4rem;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">Connecting to camera…</div>
+  <iframe id="cam" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+
+  <script>
+    const STREAM_URL = "https://monitor.ui.com/3e06d535-74e1-4629-87e7-191b20dfd4d0";
+    const MIN_DELAY = 1200;  // ms
+    const MAX_DELAY = 1800;
+
+    const delay = MIN_DELAY + Math.random() * (MAX_DELAY - MIN_DELAY);
+    console.log(`⏳ Delaying stream load ${delay.toFixed(0)} ms`);
+
+    window.addEventListener("load", () => {
+      const frame = document.getElementById("cam");
+      const loading = document.getElementById("loading");
+      setTimeout(() => {
+        frame.src = STREAM_URL;
+        frame.style.display = "block";
+        loading.remove();
+      }, delay);
+    });
+  </script>
+</body>
+</html>

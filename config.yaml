@@ -95,7 +95,7 @@ slides:
   - id: river_center_live_video
     type: youtube
     video_id: "erBoOFKTH4E"
-    duration: 15
+    duration: 30
     title: "JRA’s Jim Buzzard River Education Center"
 
 
@@ -106,6 +106,13 @@ slides:
     title: "Drone footage over the James River"
 
 
+  - id: front_porch_camera
+    type: html
+    url: "/pages/frontporch.html"
+    title: "Front Porch Camera"
+    duration: 30
+
+    
   - id: house_mux_2x2
     type: mux
     layout: 2x2
@@ -114,12 +121,12 @@ slides:
     hide_panel_titles: true
     panels:
       - slides: [james_river_flyover]
-        panel_duration: 180
+        panel_duration: 210
       - slides: [bath_before, bath_during, bath_after, pause_1 ]
         #panel_duration: 4
       - slides: [ kitchen_before, kitchen_during, kitchen_after, pause_1]
         #panel_duration: 6
-      - slides: [ richmond_current_weather,river_center_live_video]  # empty
+      - slides: [ richmond_current_weather,river_center_live_video, front_porch_camera]  # empty
         #panel_duration: infinite
 
 
@@ -142,6 +149,7 @@ clients:
     #include: [bath_before,bath_during,bath_after,pause_1]
     #include: [kitchen_before, kitchen_during, kitchen_after, pause_1 ]
     #include: [richmond_current_weather, river_center_live_video]
+    #include: [front_porch_camera]
 
   kiosk1.local:
     include: [kitchen_before, kitchen_during, bath_during, bath_after ]

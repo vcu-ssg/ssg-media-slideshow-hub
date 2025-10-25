@@ -25,6 +25,17 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
 
+
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: mediamtx
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro   # <-- ensure your file is used
+    environment:
+      - MTX_LOGLEVEL=info
+
   watchtower:
     image: containrrr/watchtower
     container_name: watchtower
