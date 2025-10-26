@@ -15,7 +15,6 @@ import sharp from "sharp";
 import { createWeatherRouter } from "./weatherapi.js"; // ✅ modular import
 import { listGoogleImages } from "./googleimages.js";
 
-
 // ------------------------------------------------------------
 // 🧭 Environment setup
 // ------------------------------------------------------------
@@ -174,28 +173,28 @@ async function buildSlideshow(clientId) {
       continue;
     }
 
+    // --- GOOGLE DRIVE SLIDES ---
     if (slide.type === "google-drive") {
       const { folderId, files, order, duration, title } = slide;
       try {
         const items = await listGoogleImages({ folderId, files, order });
-        if (items.length) {
-          expanded.push({
-            id,
-            type: "google-drive",
-            images: items,
-            duration: duration || 10,
-            title: title || "",
-            order: order || "sorted",
-          });
-        } else {
-          log(`⚠️ No images found for Google Drive slide: ${id}`);
-        }
+        log(`🧩 listGoogleImages(${id}) returned ${items.length} images`);
+        expanded.push({
+          id,
+          type: "google-drive",
+          folderId,
+          order,
+          duration: duration || 10,
+          title: title || "",
+          images: items,
+        });
       } catch (err) {
-        console.error(`❌ Google Drive fetch failed for ${id}:`, err.message);
+        const msg = `❌ Error building Google Drive slide '${id}': ${err.message}`;
+        console.error(msg);
+        log(msg);
       }
       continue;
     }
-
 
     // --- Multi-frame sequence ---
     if (slide.file?.includes("*")) {
@@ -229,6 +228,33 @@ async function buildSlideshow(clientId) {
           repeat: slide.repeat || 1,
           title: slide.title || "",
         });
+      }
+    }
+  }
+
+  // ------------------------------------------------------------
+  // 🧩 Inject Google Drive images into slides inside MUX panels
+  // ------------------------------------------------------------
+  for (const slide of expanded) {
+    if (slide.type === "mux" && slide.panels) {
+      for (const panel of slide.panels) {
+        for (const sid of panel.slides || []) {
+          const ref = expanded.find((s) => s.id === sid);
+          if (ref && ref.type === "google-drive" && !ref.images?.length) {
+            try {
+              const items = await listGoogleImages({
+                folderId: ref.folderId,
+                order: ref.order,
+              });
+              ref.images = items;
+              log(
+                `🔁 Injected ${items.length} Google Drive images into ${sid} for mux panel`
+              );
+            } catch (err) {
+              log(`❌ Mux injection failed for ${sid}: ${err.message}`);
+            }
+          }
+        }
       }
     }
   }
