@@ -82,6 +82,56 @@ async function start(){
       return;
     }
 
+    // ---------- GOOGLE DRIVE ALBUM (MUX-safe) ----------
+    if (type === "google-drive" && slide.images?.length) {
+      console.log(`🖼️ Rendering Google Drive album (${slide.images.length} images, ${slide.duration || 10}s each)`);
+
+      const img = document.createElement("img");
+      target.appendChild(img);
+
+      const frames = slide.images.map(i => i.url);
+      let index = 0;
+      let cancelled = false;
+
+      // Cancel helper if parent clears this slide early
+      const observer = new MutationObserver(() => {
+        if (!document.body.contains(target)) {
+          cancelled = true;
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      // Preload images before showing first
+      await Promise.all(
+        frames.map(
+          src =>
+            new Promise(res => {
+              const im = new Image();
+              im.onload = res;
+              im.onerror = res;
+              im.src = src;
+            })
+        )
+      );
+
+      const showNext = () => {
+        if (cancelled) return;
+        img.src = frames[index % frames.length];
+        index++;
+        if (index < frames.length) {
+          setTimeout(showNext, (slide.duration || 10) * 1000);
+        } else {
+          observer.disconnect();
+          onDone?.(); // signal completion back up the chain
+        }
+      };
+
+      showNext();
+      return;
+    }
+
+
     // ---------- HTML PAGE ----------
     if(type==="html" && slide.url){
       const f=document.createElement("iframe");

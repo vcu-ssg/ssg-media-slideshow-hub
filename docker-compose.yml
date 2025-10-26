@@ -6,22 +6,35 @@ services:
       dockerfile: Dockerfile
     container_name: photo-kiosk
     restart: unless-stopped
+
     ports:
       - "${KIOSK_PORT:-3000}:3000"
+
+    # --- Mount app directories ---
     volumes:
       - ./photos:/app/photos
       - ./public:/app/public
       - ./pages:/app/pages
       - ./config.yaml:/app/config.yaml:ro
       - ./logs:/app/logs
+
+      # --- Mount your Google credentials file securely (read-only) ---
+      - ${GOOGLE_CREDENTIALS_FILE:-/home/john/.gsecrets/gsheets-credentials.json}:/run/secrets/gsheets-credentials.json:ro
+
+    # --- Environment variables ---
     env_file:
-      - .env
+      - ~/.env   # your personal/global settings (host values)
+      - .env     # project/container settings (container paths)
+
     environment:
       - NODE_ENV=${KIOSK_NODE_ENV}
       - PORT=${KIOSK_PORT}
       - OPENWEATHER_KEY=${KIOSK_OPENWEATHER_KEY}
+      - CLIENT_ID=${CLIENT_ID}
       - ENV_PATH=/app/.env
-      - CLIENT_ID=${CLIENT_ID:-${HOSTNAME:-${HOST:-${COMPUTERNAME:-default-client}}}}
+      - GOOGLE_CREDENTIALS_PATH=/run/secrets/gsheets-credentials.json
+      - GOOGLE_API_SCOPES=${GOOGLE_API_SCOPES}
+
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
 
@@ -31,7 +44,7 @@ services:
     restart: unless-stopped
     ports:
       - "8554:8554"    # RTSP
-      - "8888:8888"    # HLS (browser)
+      - "8888:8888"    # HLS
     volumes:
       - ./mediamtx.yml:/mediamtx.yml:ro
     labels:

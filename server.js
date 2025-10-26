@@ -13,6 +13,8 @@ import { minimatch } from "minimatch";
 import { glob } from "glob";
 import sharp from "sharp";
 import { createWeatherRouter } from "./weatherapi.js"; // ✅ modular import
+import { listGoogleImages } from "./googleimages.js";
+
 
 // ------------------------------------------------------------
 // 🧭 Environment setup
@@ -171,6 +173,29 @@ async function buildSlideshow(clientId) {
       });
       continue;
     }
+
+    if (slide.type === "google-drive") {
+      const { folderId, files, order, duration, title } = slide;
+      try {
+        const items = await listGoogleImages({ folderId, files, order });
+        if (items.length) {
+          expanded.push({
+            id,
+            type: "google-drive",
+            images: items,
+            duration: duration || 10,
+            title: title || "",
+            order: order || "sorted",
+          });
+        } else {
+          log(`⚠️ No images found for Google Drive slide: ${id}`);
+        }
+      } catch (err) {
+        console.error(`❌ Google Drive fetch failed for ${id}:`, err.message);
+      }
+      continue;
+    }
+
 
     // --- Multi-frame sequence ---
     if (slide.file?.includes("*")) {

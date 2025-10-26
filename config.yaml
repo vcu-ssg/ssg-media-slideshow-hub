@@ -117,7 +117,14 @@ slides:
     url: "/pages/front_porch_rtsp.html"
     duration: 45
 
-    
+  - id: google_fda_album_2025_05_20
+    type: google-drive
+    folderId: "1xG1hbk-uOIRYjKQmFx12C9KE7VkXH1lx"
+    order: random
+    duration: 3
+    title: "Shared Google Drive Photos"    
+
+
   - id: house_mux_2x2
     type: mux
     layout: 2x2
@@ -166,12 +173,13 @@ clients:
     #include: [kitchen_before, kitchen_during, kitchen_after, pause_2, kitchen_animation, pause_2, powder_before, powder_during, powder_after, pause_2, bath_before, bath_during, bath_after, pause_2 ]
     #include: [kitchen_before, kitchen_during, kitchen_after, pause_2, powder_before, powder_during, powder_after, pause_2, bath_before, bath_during, bath_after, pause_2 ]
     #include: [river_center_live_video, james_river_flyover]
-    include: [ house_mux_2x2 ]
+    #include: [ house_mux_2x2 ]
     #include: [powder_before, powder_during, powder_after, pause_2]
     #include: [bath_before,bath_during,bath_after,pause_1]
     #include: [kitchen_before, kitchen_during, kitchen_after, pause_1 ]
     #include: [richmond_current_weather, river_center_live_video]
     #include: [front_porch_camera]
+    include: [google_fda_album_2025_05_20]
 
   kiosk1.local:
     include: [kitchen_before, kitchen_during, bath_during, bath_after ]

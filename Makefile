@@ -12,15 +12,15 @@ AUTOSTART_SNIPPET := @bash -c "cd $(HOME)/projects/$(APP_NAME) && make up" && \
                      @chromium-browser --kiosk --noerrdialogs --disable-infobars \
                      --check-for-update-interval=31536000 --incognito --no-first-run http://localhost:$(PORT)
 
-
 # Docker image and tag
 IMAGE := $(APP_NAME):latest
 
 # Detect if docker compose v2 (modern syntax)
+# Compose environment layering: ~/.env (personal) + ./.env (project)
 DOCKER_COMPOSE := docker compose
+ENV_FILES := --env-file ~/.env --env-file .env
+
 DOCKER_USER := jleonard99
-
-
 LOGO = @echo "📸"
 
 # -----------------------------
@@ -65,24 +65,24 @@ clean:
 # -----------------------------
 
 build:
-	$(DOCKER_COMPOSE) build
+	$(DOCKER_COMPOSE) $(ENV_FILES) build
 
 up:
-	$(DOCKER_COMPOSE) up -d
+	$(DOCKER_COMPOSE) $(ENV_FILES) up -d --build
 	@echo "✅ Server running at http://localhost:$(PORT)"
 
 down:
-	$(DOCKER_COMPOSE) down
+	$(DOCKER_COMPOSE) $(ENV_FILES) down
 
 logs:
-	$(DOCKER_COMPOSE) logs -f
+	$(DOCKER_COMPOSE) $(ENV_FILES) logs -f
 
-restart:
-	$(DOCKER_COMPOSE) down
-	$(DOCKER_COMPOSE) up -d
+restart: down up
+	@echo "restart complete"
 
 rebuild:
-	$(DOCKER_COMPOSE) up -d --build
+	$(DOCKER_COMPOSE) $(ENV_FILES) up -d --build --force-recreate
+	@echo "rebuild complete"
 
 status:
 	@docker ps --filter "name=$(CONTAINER)"
@@ -138,7 +138,6 @@ push:
 	docker tag $(IMAGE) $(DOCKER_USER)/$(IMAGE)
 	docker push $(DOCKER_USER)/$(IMAGE)
 
-
 # -------------------------------------------
 # Deploy from Docker Hub on Raspberry Pi
 # -------------------------------------------
@@ -167,9 +166,8 @@ run:
 
 run-production:
 	@echo "🚀 Running $(APP_NAME) in production mode with Watchtower profile..."
-	$(DOCKER_COMPOSE) --profile production up -d
+	$(DOCKER_COMPOSE) $(ENV_FILES) --profile production up -d
 	@echo "✅ $(APP_NAME) running under 'production' profile (Watchtower enabled)"
-
 
 # -------------------------------------------
 # Multi-arch Build and Push (Buildx)
@@ -191,7 +189,6 @@ buildx-push: buildx-create
 		-t $(DOCKER_USER)/$(APP_NAME):latest \
 		--push .
 	@echo "✅ Multi-arch image pushed to Docker Hub: $(DOCKER_USER)/$(APP_NAME):latest"
-
 
 # -----------------------------
 # Cache Management
