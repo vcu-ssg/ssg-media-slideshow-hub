@@ -86,6 +86,12 @@ slides:
     duration: 15
 
 
+  - id: richmond_current_conditions
+    type: html
+    url: "/pages/current_conditions.html?city=Richmond,VA"
+    duration: 15
+
+
   - id: james_river_water_level
     type: html
     url: "https://water.noaa.gov/gauges/rmdv2"
@@ -189,6 +195,7 @@ clients:
     #include: [richmond_current_weather ]
     #include: [front_porch_camera]
     #include: [google_fda_album_2025_05_20]
+    #include: [ richmond_current_conditions ]
     include: [ house_mux_2x2 ]
 
   kiosk1.local:

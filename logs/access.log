@@ -6753,3 +6753,17 @@
 ::1 - - [26/Oct/2025:17:54:49 +0000] "GET /api/weather/current?city=Richmond%2CVA&units=imperial HTTP/1.1" 304 - "http://localhost:3000/pages/weather.html?city=Richmond,VA" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
 2025-10-26T17:54:49.307Z | 🌤️ Using cached forecast for 37.5385087,-77.43428,imperial
 ::1 - - [26/Oct/2025:17:54:49 +0000] "GET /api/weather?city=Richmond%2CVA&units=imperial HTTP/1.1" 304 - "http://localhost:3000/pages/weather.html?city=Richmond,VA" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+2025-10-26T17:59:07.505Z | ✅ Loaded config.yaml from /home/john/projects/ssg-kiosk-photo-player/config.yaml
+::1 - - [26/Oct/2025:17:59:12 +0000] "GET / HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+2025-10-26T17:59:12.756Z | ✅ Built slideshow for Scrollsaw: 1 slides total
+::1 - - [26/Oct/2025:17:59:12 +0000] "GET /api/slideshow HTTP/1.1" 200 144 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::1 - - [26/Oct/2025:17:59:12 +0000] "GET /pages/current_conditions.html?city=Richmond,VA HTTP/1.1" 404 168 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::1 - - [26/Oct/2025:17:59:22 +0000] "GET /pages/current_conditions.html HTTP/1.1" 404 168 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+2025-10-26T18:00:25.700Z | ✅ Loaded config.yaml from /home/john/projects/ssg-kiosk-photo-player/config.yaml
+::1 - - [26/Oct/2025:18:00:27 +0000] "GET /pages/current_conditions.html HTTP/1.1" 200 5558 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+2025-10-26T18:01:24.924Z | ✅ Loaded config.yaml from /home/john/projects/ssg-kiosk-photo-player/config.yaml
+::1 - - [26/Oct/2025:18:01:26 +0000] "GET /pages/current_conditions.html?city=Richmond,VA HTTP/1.1" 200 5558 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::1 - - [26/Oct/2025:18:01:26 +0000] "GET /api/weather/current?city=Richmond%2CVA&units=imperial HTTP/1.1" 200 567 "http://localhost:3000/pages/current_conditions.html?city=Richmond,VA" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::1 - - [26/Oct/2025:18:01:27 +0000] "GET /pages/current_conditions.html?city=Richmond,VA HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+2025-10-26T18:01:27.980Z | 🌡️ Using cached current weather for 37.5385087,-77.43428,imperial
+::1 - - [26/Oct/2025:18:01:27 +0000] "GET /api/weather/current?city=Richmond%2CVA&units=imperial HTTP/1.1" 304 - "http://localhost:3000/pages/current_conditions.html?city=Richmond,VA" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"

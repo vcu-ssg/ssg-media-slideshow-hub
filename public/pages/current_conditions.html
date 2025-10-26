@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Current Conditions</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg1: #1e3c72;
+      --bg2: #2a5298;
+      --text: #fff;
+      --accent: #ffdc80;
+      --shadow: rgba(0, 0, 0, 0.3);
+    }
+    body {
+      margin: 0;
+      height: 100vh;
+      font-family: "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(to bottom, var(--bg1), var(--bg2));
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    h1 { font-weight: 400; margin: 0.2em 0; }
+    .time {
+      font-size: 1.3rem;
+      opacity: 0.9;
+      margin-bottom: 0.8em;
+    }
+    .temp {
+      font-size: 5rem;
+      font-weight: 200;
+      margin: 0;
+      text-shadow: 2px 2px 5px var(--shadow);
+    }
+    .feels {
+      font-size: 1.3rem;
+      opacity: 0.85;
+      margin-bottom: 1.5em;
+    }
+    .icon {
+      width: 100px;
+      height: 100px;
+    }
+    .desc {
+      font-size: 1.6rem;
+      font-weight: 300;
+      margin-bottom: 1em;
+      text-transform: capitalize;
+    }
+    .details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1em;
+      width: 80%;
+      max-width: 800px;
+      margin-top: 1em;
+      text-align: left;
+    }
+    .details div {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 0.8em 1em;
+      box-shadow: 1px 1px 5px var(--shadow);
+    }
+    .label { font-size: 0.9rem; opacity: 0.8; }
+    .value { font-size: 1.2rem; font-weight: 500; }
+    footer {
+      position: absolute;
+      bottom: 0.8rem;
+      font-size: 0.9rem;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="location">Loading...</h1>
+  <div class="time" id="time"></div>
+
+  <img id="icon" class="icon" alt="" />
+  <div class="temp" id="temp"></div>
+  <div class="feels" id="feels"></div>
+  <div class="desc" id="desc"></div>
+
+  <div class="details" id="details"></div>
+
+  <footer id="footer"></footer>
+
+  <script>
+    const REFRESH_INTERVAL = 5 * 60 * 1000; // refresh every 5 minutes
+    let lastUpdate = 0;
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("time").textContent = now.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function formatTime(ts) {
+      return new Date(ts * 1000).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    }
+
+    async function getCurrent() {
+      const params = new URLSearchParams(window.location.search);
+      const zip = params.get("zip");
+      const city = params.get("city");
+      const units = "imperial";
+
+      let query = "";
+      if (zip) query = `zip=${encodeURIComponent(zip)}`;
+      else if (city) query = `city=${encodeURIComponent(city)}`;
+      else {
+        document.getElementById("location").textContent = "⚠️ Missing ?zip= or ?city= parameter";
+        return;
+      }
+
+      const API_CURRENT = `/api/weather/current?${query}&units=${units}`;
+
+      try {
+        const res = await fetch(API_CURRENT);
+        if (!res.ok) throw new Error(`Weather error ${res.status}`);
+        const data = await res.json();
+
+        const locName = data.name || "Unknown";
+        const state = data.state_abbr || "";
+        document.getElementById("location").textContent = state ? `${locName}, ${state}` : locName;
+
+        const iconCode = data.weather?.[0]?.icon || "01d";
+        const desc = data.weather?.[0]?.description || "—";
+        const temp = Math.round(data.main?.temp);
+        const feels = Math.round(data.main?.feels_like);
+
+        document.getElementById("icon").src = `https://openweathermap.org/img/wn/${iconCode}@4x.png`;
+        document.getElementById("desc").textContent = desc;
+        document.getElementById("temp").textContent = `${temp}°F`;
+        document.getElementById("feels").textContent = `Feels like ${feels}°F`;
+
+        const sunrise = formatTime(data.sys?.sunrise);
+        const sunset = formatTime(data.sys?.sunset);
+
+        const details = [
+          { label: "Wind", value: `${Math.round(data.wind?.speed)} mph` },
+          { label: "Humidity", value: `${data.main?.humidity}%` },
+          { label: "Pressure", value: `${data.main?.pressure} hPa` },
+          { label: "Visibility", value: `${(data.visibility / 1609).toFixed(1)} mi` },
+          { label: "Sunrise", value: `🌅 ${sunrise}` },
+          { label: "Sunset", value: `🌇 ${sunset}` },
+        ];
+
+        const detailsDiv = document.getElementById("details");
+        detailsDiv.innerHTML = "";
+        for (const d of details) {
+          const div = document.createElement("div");
+          div.innerHTML = `<div class="label">${d.label}</div><div class="value">${d.value}</div>`;
+          detailsDiv.appendChild(div);
+        }
+
+        lastUpdate = Date.now();
+        document.getElementById("footer").textContent =
+          `Last updated ${new Date(lastUpdate).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+      } catch (err) {
+        console.error("Weather fetch failed:", err);
+        document.body.innerHTML =
+          `<h1 style="color:#ffcccc">⚠️ ${err.message}</h1>`;
+      }
+    }
+
+    getCurrent();
+    setInterval(getCurrent, REFRESH_INTERVAL);
+  </script>
+</body>
+</html>
