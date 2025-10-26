@@ -112,6 +112,11 @@ slides:
     title: "Front Porch Camera"
     duration: 30
 
+  - id: front_porch_rtsp
+    type: html
+    url: "/pages/front_porch_rtsp.html"
+    duration: 45
+
     
   - id: house_mux_2x2
     type: mux
@@ -124,10 +129,27 @@ slides:
         panel_duration: 210
       - slides: [bath_before, bath_during, bath_after, pause_1 ]
         #panel_duration: 4
+      - slides: [  mini_mux_2x2 ]
+        #panel_duration: 6
+      - slides: [ front_porch_rtsp, richmond_current_weather,river_center_live_video ]  # empty
+        #panel_duration: infinite
+
+  - id: mini_mux_2x2
+    type: mux
+    layout: 2x2
+    duration: infinite
+    title: ""
+    hide_panel_titles: true
+    panels:
+      - slides: [ powder_before, powder_during, powder_after, pause_1]
+        panel_duration: 210
+      - slides: [bath_before, bath_during, bath_after, pause_1 ]
+        #panel_duration: 4
       - slides: [ kitchen_before, kitchen_during, kitchen_after, pause_1]
         #panel_duration: 6
-      - slides: [ richmond_current_weather,river_center_live_video, front_porch_camera]  # empty
-        #panel_duration: infinite
+      - slides: [ kitchen_during, powder_during, bath_during]
+        #panel_duration: 6
+
 
 
 #https://youtu.be/erBoOFKTH4E
