@@ -14,6 +14,8 @@ import { glob } from "glob";
 import sharp from "sharp";
 import { createWeatherRouter } from "./weatherapi.js"; // ✅ modular import
 import { listGoogleImages } from "./googleimages.js";
+import { listOneDriveImages } from "./onedriveimages.js";
+
 
 // ------------------------------------------------------------
 // 🧭 Environment setup
@@ -196,6 +198,32 @@ async function buildSlideshow(clientId) {
       continue;
     }
 
+    // --- ONEDRIVE SLIDES ---
+    if (slide.type === "one-drive") {
+      const { id, folder, order, duration, title, effect } = slide;
+      try {
+        const items = await listOneDriveImages({ folderPath: folder, order });
+        log(`🧩 listOneDriveImages(${id}) returned ${items.length} images`);
+
+        expanded.push({
+          id,
+          type: "one-drive",
+          folder,
+          order,
+          effect: effect || "fade",
+          duration: duration || 10,
+          title: title || "",
+          images: items,
+        });
+      } catch (err) {
+        const msg = `❌ Error building OneDrive slide '${id}': ${err.message}`;
+        console.error(msg);
+        log(msg);
+      }
+      continue;
+    }
+
+
     // --- Multi-frame sequence ---
     if (slide.file?.includes("*")) {
       const frames = await prepareFrames(slide.file);
@@ -240,6 +268,7 @@ async function buildSlideshow(clientId) {
       for (const panel of slide.panels) {
         for (const sid of panel.slides || []) {
           const ref = expanded.find((s) => s.id === sid);
+
           if (ref && ref.type === "google-drive" && !ref.images?.length) {
             try {
               const items = await listGoogleImages({
@@ -254,6 +283,22 @@ async function buildSlideshow(clientId) {
               log(`❌ Mux injection failed for ${sid}: ${err.message}`);
             }
           }
+
+          if (ref && ref.type === "one-drive" && !ref.images?.length) {
+            try {
+              const items = await listOneDriveImages({
+                folderPath: ref.folder,
+                order: ref.order,
+              });
+              ref.images = items;
+              log(
+                `🔁 Injected ${items.length} OneDrive images into ${sid} for mux panel`
+              );
+            } catch (err) {
+              log(`❌ Mux injection failed for ${sid}: ${err.message}`);
+            }
+          }
+
         }
       }
     }

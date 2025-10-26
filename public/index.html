@@ -83,7 +83,7 @@ async function start(){
     }
 
     // ---------- GOOGLE DRIVE ALBUM (supports fade + mux-safe) ----------
-    if (type === "google-drive" && slide.images?.length) {
+    if ((type === "google-drive" || type === "one-drive") && slide.images?.length) {
       console.log(
         `🖼️ Rendering Google Drive album (${slide.images.length} images, ${slide.duration || 10}s each, effect=${slide.effect || "none"})`
       );

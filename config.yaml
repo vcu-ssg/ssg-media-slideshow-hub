@@ -125,6 +125,15 @@ slides:
     duration: 3
     title: "Shared Google Drive Photos"    
 
+  - id: onedrive_photos
+    type: one-drive
+    folder: "/Kiosk-Photos"
+    effect: fade
+    order: random
+    duration: 3
+    title: "Onedrive Drive Photos"    
+
+
 
   - id: house_mux_2x2
     type: mux
@@ -135,7 +144,7 @@ slides:
     panels:
       - slides: [james_river_flyover]
         panel_duration: 210
-      - slides: [bath_before, bath_during, bath_after, pause_1 ]
+      - slides: [onedrive_photos, bath_before, bath_during, bath_after, pause_1 ]
         #panel_duration: 4
       - slides: [ google_fda_album_2025_05_20 ]
         #panel_duration: 6
