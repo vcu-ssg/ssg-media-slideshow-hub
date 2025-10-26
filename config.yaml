@@ -186,7 +186,7 @@ clients:
     #include: [powder_before, powder_during, powder_after, pause_2]
     #include: [bath_before,bath_during,bath_after,pause_1]
     #include: [kitchen_before, kitchen_during, kitchen_after, pause_1 ]
-    #include: [richmond_current_weather, river_center_live_video]
+    #include: [richmond_current_weather ]
     #include: [front_porch_camera]
     #include: [google_fda_album_2025_05_20]
     include: [ house_mux_2x2 ]

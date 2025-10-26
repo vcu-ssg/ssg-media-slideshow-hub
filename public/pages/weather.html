@@ -91,32 +91,60 @@
           <img src="https://openweathermap.org/img/wn/${icon}@2x.png" class="icon"><br>${temp}°F
         `;
 
-        // --- Today's high/low ---
+        // --- Today's high/low (local time) ---
         if (forecast.list?.length) {
-          const todayTemps = forecast.list.slice(0, 8).map(p => p.main.temp);
-          const high = Math.round(Math.max(...todayTemps));
-          const low = Math.round(Math.min(...todayTemps));
-          document.getElementById("high-low").textContent = `High ${high}° • Low ${low}°`;
+          const today = new Date().toLocaleDateString("en-CA");
+          const todayTemps = forecast.list
+            .filter(p => new Date(p.dt * 1000).toLocaleDateString("en-CA") === today)
+            .map(p => p.main.temp);
+
+          if (todayTemps.length) {
+            const high = Math.round(Math.max(...todayTemps));
+            const low = Math.round(Math.min(...todayTemps));
+            document.getElementById("high-low").textContent = `High ${high}° • Low ${low}°`;
+          } else {
+            document.getElementById("high-low").textContent = "";
+          }
         }
 
-        // --- 3-day forecast ---
+
+        // --- 3-day forecast (starting tomorrow, using OpenWeather timezone offset) ---
         const byDate = {};
+        const tzOffsetSec = forecast.city?.timezone ?? 0; // seconds east of UTC
+
+        // Compute today's and tomorrow's date (in local city time)
+        const nowUtcMs = Date.now();
+        const cityNow = new Date(nowUtcMs + tzOffsetSec * 1000);
+        const todayCity = new Date(cityNow);
+        todayCity.setHours(0, 0, 0, 0);
+        const tomorrowCity = new Date(todayCity);
+        tomorrowCity.setDate(todayCity.getDate() + 1);
+
+        // Group forecast entries by city-local date, skip entries before tomorrow
         for (const entry of forecast.list || []) {
-          const d = new Date(entry.dt * 1000).toISOString().split("T")[0];
+          const localMs = entry.dt * 1000 + tzOffsetSec * 1000;
+          const localDate = new Date(localMs);
+          if (localDate < tomorrowCity) continue; // skip today's data
+          const d = localDate.toISOString().split("T")[0]; // YYYY-MM-DD in city-local zone
           if (!byDate[d]) byDate[d] = [];
           byDate[d].push(entry);
         }
 
-        const dates = Object.keys(byDate).slice(1, 4);
+        // Get next 3 days starting from tomorrow
+        const dates = Object.keys(byDate).sort().slice(0, 3);
+
         const forecastEl = document.getElementById("forecast");
         forecastEl.innerHTML = "";
 
         for (const d of dates) {
           const dayEntries = byDate[d];
+          if (!dayEntries.length) continue;
           const max = Math.round(Math.max(...dayEntries.map(e => e.main.temp_max)));
           const min = Math.round(Math.min(...dayEntries.map(e => e.main.temp_min)));
           const midIcon = dayEntries[Math.floor(dayEntries.length / 2)].weather[0].icon;
-          const weekday = new Date(d).toLocaleDateString("en-US", { weekday: "short" });
+
+          // Render day name using the *city-local* date
+          const weekday = new Date(d + "T12:00:00").toLocaleDateString("en-US", { weekday: "short" });
 
           const div = document.createElement("div");
           div.className = "day";
@@ -127,6 +155,7 @@
           `;
           forecastEl.appendChild(div);
         }
+
 
         lastUpdate = Date.now();
         document.getElementById("footer").textContent = `Last updated ${formatTime(lastUpdate)}`;
@@ -149,7 +178,6 @@
       clearTimeout(timer);
       timer = setTimeout(() => {
         const elapsed = Date.now() - lastUpdate;
-        // only refresh if the page has been visible >= 5 min (prevents MUX interference)
         if (elapsed >= REFRESH_INTERVAL) getWeather();
         scheduleRefresh();
       }, REFRESH_INTERVAL);
