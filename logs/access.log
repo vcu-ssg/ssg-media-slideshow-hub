@@ -6549,3 +6549,30 @@
 2025-10-26T17:25:22.280Z | ✅ Built slideshow for Scrollsaw: 11 slides total
 ::1 - - [26/Oct/2025:17:25:22 +0000] "GET /api/slideshow HTTP/1.1" 200 25461 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
 ::1 - - [26/Oct/2025:17:25:23 +0000] "GET /pages/front_porch_rtsp.html HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+2025-10-26T17:38:50.720Z | ✅ Loaded config.yaml from /home/john/projects/ssg-kiosk-photo-player/config.yaml
+::1 - - [26/Oct/2025:17:38:56 +0000] "GET / HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+2025-10-26T17:38:56.523Z | 🔁 Injected 11 OneDrive images into onedrive_photos
+2025-10-26T17:38:57.102Z | ✅ Google Drive: 73 images loaded from folder 1xG1hbk-uOIRYjKQmFx12C9KE7VkXH1lx
+2025-10-26T17:38:57.102Z | 🔁 Injected 73 Google Drive images into google_fda_album_2025_05_20
+2025-10-26T17:38:57.102Z | ✅ Built slideshow for Scrollsaw: 11 slides total
+::1 - - [26/Oct/2025:17:38:57 +0000] "GET /api/slideshow HTTP/1.1" 200 25483 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::1 - - [26/Oct/2025:17:38:57 +0000] "GET /pages/front_porch_rtsp.html HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::1 - - [26/Oct/2025:17:39:23 +0000] "GET / HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+2025-10-26T17:39:23.925Z | ✅ Built slideshow for Scrollsaw: 11 slides total
+::1 - - [26/Oct/2025:17:39:23 +0000] "GET /api/slideshow HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::1 - - [26/Oct/2025:17:39:24 +0000] "GET /pages/front_porch_rtsp.html HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::1 - - [26/Oct/2025:17:39:28 +0000] "GET / HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+2025-10-26T17:39:28.529Z | ✅ Built slideshow for Scrollsaw: 11 slides total
+::1 - - [26/Oct/2025:17:39:28 +0000] "GET /api/slideshow HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::1 - - [26/Oct/2025:17:39:29 +0000] "GET /pages/front_porch_rtsp.html HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+2025-10-26T17:40:02.831Z | ✅ Loaded config.yaml from /app/config.yaml
+::ffff:172.23.0.1 - - [26/Oct/2025:17:40:03 +0000] "GET /photos/bath_before.jpg HTTP/1.1" 404 161 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::ffff:172.23.0.1 - - [26/Oct/2025:17:40:03 +0000] "GET /photos/bath_before.JPG HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::ffff:172.23.0.1 - - [26/Oct/2025:17:40:05 +0000] "GET / HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+2025-10-26T17:40:05.927Z | 🔁 Injected 11 OneDrive images into onedrive_photos
+2025-10-26T17:40:06.492Z | 🔁 Injected 73 Google Drive images into google_fda_album_2025_05_20
+2025-10-26T17:40:06.492Z | ✅ Built slideshow for Scrollsaw: 11 slides total
+::ffff:172.23.0.1 - - [26/Oct/2025:17:40:06 +0000] "GET /api/slideshow HTTP/1.1" 200 25483 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::ffff:172.23.0.1 - - [26/Oct/2025:17:40:07 +0000] "GET /pages/front_porch_rtsp.html HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::ffff:172.23.0.1 - - [26/Oct/2025:17:40:41 +0000] "GET /photos/bath_before.jpg HTTP/1.1" 404 161 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::ffff:172.23.0.1 - - [26/Oct/2025:17:40:41 +0000] "GET /photos/bath_before.JPG HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"

@@ -12,10 +12,9 @@ import { fileURLToPath } from "url";
 import { minimatch } from "minimatch";
 import { glob } from "glob";
 import sharp from "sharp";
-import { createWeatherRouter } from "./weatherapi.js"; // ✅ modular import
+import { createWeatherRouter } from "./weatherapi.js";
 import { listGoogleImages } from "./googleimages.js";
 import { listOneDriveImages } from "./onedriveimages.js";
-
 
 // ------------------------------------------------------------
 // 🧭 Environment setup
@@ -23,6 +22,7 @@ import { listOneDriveImages } from "./onedriveimages.js";
 dotenv.config({ path: process.env.ENV_PATH || "/home/john/.env" });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = path.join(__dirname, ".."); // project root (one level up)
 const app = express();
 
 const PORT = process.env.KIOSK_PORT || process.env.PORT || 3000;
@@ -31,11 +31,15 @@ const OPENWEATHER_KEY =
   process.env.KIOSK_OPENWEATHER_KEY || process.env.OPENWEATHER_KEY || "";
 
 // ------------------------------------------------------------
-// 📂 Directory setup
+// 📂 Directory setup (resolve relative to project root)
 // ------------------------------------------------------------
-const PHOTOS_DIR = path.join(__dirname, "photos");
-const CACHE_DIR = path.join(__dirname, "cache");
-const LOG_DIR = path.join(__dirname, "logs");
+const PHOTOS_DIR = path.join(ROOT_DIR, "photos");
+const CACHE_DIR = path.join(ROOT_DIR, "cache");
+const LOG_DIR = path.join(ROOT_DIR, "logs");
+const PUBLIC_DIR = path.join(ROOT_DIR, "public");
+const PAGES_DIR = path.join(ROOT_DIR, "pages");
+const CONFIG_PATH = path.join(ROOT_DIR, "config.yaml");
+
 fs.mkdirSync(LOG_DIR, { recursive: true });
 fs.mkdirSync(CACHE_DIR, { recursive: true });
 
@@ -54,7 +58,6 @@ function log(msg) {
 // ------------------------------------------------------------
 // ⚙️ Load config.yaml
 // ------------------------------------------------------------
-const CONFIG_PATH = path.join(__dirname, "config.yaml");
 let config = {};
 try {
   const text = fs.readFileSync(CONFIG_PATH, "utf8");
@@ -70,10 +73,10 @@ try {
 // ------------------------------------------------------------
 // 🌐 Static routes
 // ------------------------------------------------------------
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(PUBLIC_DIR));
 app.use("/photos", express.static(PHOTOS_DIR));
 app.use("/cache", express.static(CACHE_DIR));
-app.use("/pages", express.static(path.join(__dirname, "pages")));
+app.use("/pages", express.static(PAGES_DIR));
 
 // ------------------------------------------------------------
 // 🔍 Helpers
@@ -204,7 +207,6 @@ async function buildSlideshow(clientId) {
       try {
         const items = await listOneDriveImages({ folderPath: folder, order });
         log(`🧩 listOneDriveImages(${id}) returned ${items.length} images`);
-
         expanded.push({
           id,
           type: "one-drive",
@@ -222,7 +224,6 @@ async function buildSlideshow(clientId) {
       }
       continue;
     }
-
 
     // --- Multi-frame sequence ---
     if (slide.file?.includes("*")) {
@@ -261,44 +262,40 @@ async function buildSlideshow(clientId) {
   }
 
   // ------------------------------------------------------------
-  // 🧩 Inject Google Drive images into slides inside MUX panels
+  // 🧩 Inject Google Drive / OneDrive images into MUX panels
   // ------------------------------------------------------------
   for (const slide of expanded) {
     if (slide.type === "mux" && slide.panels) {
       for (const panel of slide.panels) {
         for (const sid of panel.slides || []) {
           const ref = expanded.find((s) => s.id === sid);
+          if (!ref) continue;
 
-          if (ref && ref.type === "google-drive" && !ref.images?.length) {
+          if (ref.type === "google-drive" && !ref.images?.length) {
             try {
               const items = await listGoogleImages({
                 folderId: ref.folderId,
                 order: ref.order,
               });
               ref.images = items;
-              log(
-                `🔁 Injected ${items.length} Google Drive images into ${sid} for mux panel`
-              );
+              log(`🔁 Injected ${items.length} Google Drive images into ${sid}`);
             } catch (err) {
               log(`❌ Mux injection failed for ${sid}: ${err.message}`);
             }
           }
 
-          if (ref && ref.type === "one-drive" && !ref.images?.length) {
+          if (ref.type === "one-drive" && !ref.images?.length) {
             try {
               const items = await listOneDriveImages({
                 folderPath: ref.folder,
                 order: ref.order,
               });
               ref.images = items;
-              log(
-                `🔁 Injected ${items.length} OneDrive images into ${sid} for mux panel`
-              );
+              log(`🔁 Injected ${items.length} OneDrive images into ${sid}`);
             } catch (err) {
               log(`❌ Mux injection failed for ${sid}: ${err.message}`);
             }
           }
-
         }
       }
     }
