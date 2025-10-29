@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Photo Kiosk (final YouTube fix)</title>
+<title>Photo Kiosk (collage in/out + pixel border)</title>
 <style>
 html,body{margin:0;height:100%;background:black;overflow:hidden;}
 #slideshow{position:relative;width:100%;height:100%;}
@@ -21,41 +21,14 @@ async function loadShow(){const r=await fetch("/api/slideshow");const j=await r.
 function parseAlign(a){if(!a)return{x:"center",y:"center"};const p=a.trim().split(/\s+/);return{x:p[0]||"center",y:p[1]||"center"};}
 function applyEffect(img,effect,dur){const d=(dur||5)*1000;if(effect==="kenburns-zoom-in")img.animate([{transform:"scale(1)"},{transform:"scale(1.15)"}],{duration:d,fill:"forwards",easing:"ease-in-out"});else if(effect==="kenburns-zoom-out")img.animate([{transform:"scale(1.15)"},{transform:"scale(1)"}],{duration:d,fill:"forwards",easing:"ease-in-out"});}
 
-function playFrames(img, frames, fps, repeat, duration, effect, onDone) {
-  if (!frames?.length) return onDone?.();
-
-  const loops = repeat ?? 1;
-  const totalFrames = frames.length * loops;
-
-  // --- Compute total duration ---
-  let totalDurationMs;
-  if (duration && duration > 0) {
-    totalDurationMs = duration * 1000; // user-specified total time
-  } else if (fps && fps > 0) {
-    totalDurationMs = (totalFrames / fps) * 1000;
-  } else {
-    totalDurationMs = totalFrames * 500; // default 0.5s per frame
-  }
-
-  const delay = totalDurationMs / totalFrames;
-  let index = 0;
-
-  const step = () => {
-    img.src = frames[index % frames.length];
-    index++;
-
-    if (index < totalFrames) {
-      // Schedule the next frame after the delay
-      setTimeout(step, delay);
-    } else {
-      // Hold the final frame for a full delay before finishing
-      setTimeout(() => onDone?.(), delay);
-    }
-  };
-
+function playFrames(img,frames,fps,repeat,duration,effect,onDone){
+  if(!frames?.length)return onDone?.();
+  const loops=repeat??1,total=frames.length*loops;
+  const dur=duration>0?duration*1000:(fps>0?(total/fps)*1000:total*500);
+  const delay=dur/total;let i=0;
+  const step=()=>{img.src=frames[i%frames.length];i++;i<total?setTimeout(step,delay):setTimeout(()=>onDone?.(),delay);}
   step();
 }
-
 
 async function start(){
   const slides=await loadShow();
@@ -68,177 +41,190 @@ async function start(){
   async function renderSlide(target,slide,all,onDone){
     target.innerHTML="";
     const inMux=!!target.closest(".mux-grid");
-    const type=(slide.type||"").toLowerCase();   // normalize safely
+    const type=(slide.type||"").toLowerCase();
     console.log(`▶ renderSlide: ${slide.id||"(no id)"} type=${type} inMux=${inMux}`);
 
     // ---------- YOUTUBE ----------
-    if(type==="youtube" && slide.video_id){
-      console.log(`🎬 YouTube embed ${slide.video_id}`);
+    if(type==="youtube"&&slide.video_id){
       const f=document.createElement("iframe");
       f.allow="autoplay; fullscreen";
       f.src=`https://www.youtube.com/embed/${slide.video_id}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1`;
       target.appendChild(f);
-      if(onDone && slide.duration!=="infinite") setTimeout(onDone,(slide.duration||30)*1000);
+      if(onDone&&slide.duration!=="infinite")setTimeout(onDone,(slide.duration||30)*1000);
       return;
     }
 
-    // ---------- GOOGLE DRIVE ALBUM (supports fade + mux-safe) ----------
-    if ((type === "google-drive" || type === "one-drive") && slide.images?.length) {
-      console.log(
-        `🖼️ Rendering Google Drive album (${slide.images.length} images, ${slide.duration || 10}s each, effect=${slide.effect || "none"})`
-      );
+    // ---------- GOOGLE / ONE DRIVE ----------
+    if((type==="google-drive"||type==="one-drive")&&slide.images?.length){
+      // ---- COLLAGE EFFECT ----
+      if(slide.effect==="collage"){
+        const fps=slide.fps||0.333;
+        const duration=slide.duration||60;
+        let images=[...slide.images];
+        if(slide.order==="random")images.sort(()=>Math.random()-0.5);
+        const totalImages=images.length;
+        const maxActive=slide.maxActive||8;
+        const spawnDelay=1000/fps;
 
-      const frames = slide.images.map(i => i.url);
-      const wrapper = document.createElement("div");
-      wrapper.style.position = "relative";
-      wrapper.style.width = "100%";
-      wrapper.style.height = "100%";
+        const imageMaxPosition=(slide.imageMaxPosition??0.33);
+        const imageMinSize=(slide.imageMinSize??0.25);
+        const imageMaxSize=(slide.imageMaxSize??0.33);
+        const borderColor=slide.borderColor||"rgba(255,255,255,0.9)";
+        const background=slide.background||"black";
+        const imageInEffect=(slide.imageInEffect||"fade").toLowerCase();
+        const imageOutEffect=(slide.imageOutEffect||"fade").toLowerCase();
+
+        const wrapper=document.createElement("div");
+        Object.assign(wrapper.style,{position:"absolute",inset:0,background,overflow:"hidden"});
+        target.appendChild(wrapper);
+
+        let active=[];let cancelled=false;let imgIndex=0;let zTop=1000;
+
+        const removeImage=(old)=>{
+          if(imageOutEffect==="cut"){old.remove();}
+          else if(imageOutEffect==="fade"){
+            old.style.transition="opacity 1.5s ease-in-out";
+            old.style.opacity=0;
+            setTimeout(()=>old.remove(),1500);
+          }
+        };
+
+        const spawn=()=>{
+          if(cancelled)return;
+          const img=document.createElement("img");
+          const sizeFrac=imageMinSize+Math.random()*(imageMaxSize-imageMinSize);
+          const rect=wrapper.getBoundingClientRect();
+          let borderPx=1;
+          if(slide.borderWidth!==undefined){
+            borderPx=Number(slide.borderWidth);
+          }else{
+            borderPx=Math.max(1,rect.width*0.01);
+          }
+
+          // placement spread logic
+          let spread=imageMaxPosition;
+          if(imgIndex===0)spread=0;
+          else if(imgIndex===1)spread=imageMaxPosition/2;
+          const offsetX=(Math.random()*2-1)*spread;
+          const offsetY=(Math.random()*2-1)*spread;
+
+          Object.assign(img.style,{
+            position:"absolute",
+            width:`${sizeFrac*100}%`,
+            height:`${sizeFrac*100}%`,
+            objectFit:"cover",
+            opacity:(imageInEffect==="cut"?1:0),
+            left:`calc(50% + ${offsetX*100}% - ${sizeFrac*50}%)`,
+            top:`calc(50% + ${offsetY*100}% - ${sizeFrac*50}%)`,
+            zIndex:++zTop,
+            border:`${borderPx}px solid ${borderColor}`,
+            boxSizing:"border-box",
+            filter:"drop-shadow(0 0 8px rgba(0,0,0,0.4))",
+            transition:(imageInEffect==="fade"?"opacity 1.5s ease-in-out":"none")
+          });
+
+          img.src=images[imgIndex++%totalImages].url;
+          wrapper.appendChild(img);
+          if(imageInEffect==="fade")requestAnimationFrame(()=>img.style.opacity=1);
+
+          active.push(img);
+          if(active.length>maxActive){
+            const old=active.shift();
+            old.style.zIndex=zTop-maxActive;
+            removeImage(old);
+          }
+        };
+
+        const loop=setInterval(spawn,spawnDelay);
+        const stop=()=>{cancelled=true;clearInterval(loop);};
+        setTimeout(()=>{
+          stop();
+          active.forEach((img,i)=>setTimeout(()=>removeImage(img),i*200));
+          onDone?.();
+        },duration*1000);
+
+        const obs=new MutationObserver(()=>{if(!document.body.contains(target)){stop();obs.disconnect();}});
+        obs.observe(document.body,{childList:true,subtree:true});
+        return;
+      }
+
+      // ---- FADE / CUT ----
+      const frames=slide.images.map(i=>i.url);
+      const wrapper=document.createElement("div");
+      Object.assign(wrapper.style,{position:"relative",width:"100%",height:"100%"});
       target.appendChild(wrapper);
-
-      let index = 0;
-      let cancelled = false;
-
-      // preload all first
-      await Promise.all(
-        frames.map(
-          src =>
-            new Promise(res => {
-              const im = new Image();
-              im.onload = res;
-              im.onerror = res;
-              im.src = src;
-            })
-        )
-      );
-
-      // two-layer crossfade system
-      const imgA = document.createElement("img");
-      const imgB = document.createElement("img");
-      [imgA, imgB].forEach(img => {
-        Object.assign(img.style, {
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "contain",
-          opacity: 0,
-          transition: "opacity 1s ease-in-out",
-        });
-        wrapper.appendChild(img);
-      });
-      imgA.style.opacity = 1; // start visible
-
-      const dur = (slide.duration || 10) * 1000;
-      const fade = slide.effect === "fade";
-
-      const showNext = () => {
-        if (cancelled) return;
-
-        const nextFrame = frames[index % frames.length];
-        const active = index % 2 ? imgA : imgB;
-        const passive = index % 2 ? imgB : imgA;
-
-        active.src = nextFrame;
-
-        if (fade) {
-          active.style.opacity = 1;
-          passive.style.opacity = 0;
-        } else {
-          passive.style.opacity = 0;
-          active.style.opacity = 1;
-        }
-
-        index++;
-        setTimeout(showNext, dur);
-      };
-
+      let index=0;let cancelled=false;
+      if(slide.order==="random")frames.sort(()=>Math.random()-0.5);
+      await Promise.all(frames.map(src=>new Promise(r=>{const im=new Image();im.onload=im.onerror=r;im.src=src;})));
+      const imgA=document.createElement("img"),imgB=document.createElement("img");
+      [imgA,imgB].forEach(img=>Object.assign(img.style,{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"contain",opacity:0,transition:"opacity 1s ease-in-out"}));
+      wrapper.append(imgA,imgB);imgA.style.opacity=1;
+      const dur=(slide.duration||10)*1000;const fade=slide.effect==="fade";
+      const showNext=()=>{if(cancelled)return;const next=frames[index%frames.length];const active=index%2?imgA:imgB;const passive=index%2?imgB:imgA;active.src=next;if(fade){active.style.opacity=1;passive.style.opacity=0;}else{passive.style.opacity=0;active.style.opacity=1;}index++;setTimeout(showNext,dur);};
       showNext();
-
-      // Cleanup when slide is removed
-      const observer = new MutationObserver(() => {
-        if (!document.body.contains(target)) {
-          cancelled = true;
-          observer.disconnect();
-        }
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-
-      // Let slideshow move on after total cycle
-      setTimeout(() => {
-        observer.disconnect();
-        onDone?.();
-      }, frames.length * dur);
-
+      const observer=new MutationObserver(()=>{if(!document.body.contains(target)){cancelled=true;observer.disconnect();}});
+      observer.observe(document.body,{childList:true,subtree:true});
+      setTimeout(()=>{observer.disconnect();onDone?.();},frames.length*dur);
       return;
     }
 
-
-    // ---------- HTML PAGE ----------
-    if(type==="html" && slide.url){
+    // ---------- HTML ----------
+    if(type==="html"&&slide.url){
       const f=document.createElement("iframe");
       f.src=slide.url;target.appendChild(f);
-      if(onDone && slide.duration!=="infinite") setTimeout(onDone,(slide.duration||15)*1000);
+      if(onDone&&slide.duration!=="infinite")setTimeout(onDone,(slide.duration||15)*1000);
       return;
     }
 
     // ---------- MUX ----------
-    if(type==="mux"){const grid=document.createElement("div");grid.className="mux-grid";
+    if(type==="mux"){
+      const grid=document.createElement("div");
+      grid.className="mux-grid";
       const[rows,cols]=slide.layout.split("x").map(Number);
-      grid.style.gridTemplateRows=`repeat(${rows},1fr)`;grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;target.appendChild(grid);
-      slide.panels.forEach((panel,pi)=>{const cell=document.createElement("div");cell.className="mux-cell";const inner=document.createElement("div");inner.className="mux-inner";cell.appendChild(inner);grid.appendChild(cell);
+      grid.style.gridTemplateRows=`repeat(${rows},1fr)`;
+      grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+      target.appendChild(grid);
+      slide.panels.forEach((panel,pi)=>{
+        const cell=document.createElement("div");cell.className="mux-cell";
+        const inner=document.createElement("div");inner.className="mux-inner";
+        cell.appendChild(inner);grid.appendChild(cell);
         const{x,y}=parseAlign(panel.align);inner.dataset.scale=panel.scale||1;
-        const pos=()=>{const r=cell.getBoundingClientRect();inner.style.justifyContent=(x==="left"?"flex-start":x==="right"?"flex-end":"center");inner.style.alignItems=(y==="top"?"flex-start":y==="bottom"?"flex-end":"center");let tx=0,ty=0;if(x.endsWith("%"))tx=((parseFloat(x)-50)/100)*r.width;if(y.endsWith("%"))ty=((parseFloat(y)-50)/100)*r.height;inner.style.transform=`translate(${tx}px,${ty}px) scale(${inner.dataset.scale})`;};
+        const pos=()=>{const r=cell.getBoundingClientRect();
+          inner.style.justifyContent=(x==="left"?"flex-start":x==="right"?"flex-end":"center");
+          inner.style.alignItems=(y==="top"?"flex-start":y==="bottom"?"flex-end":"center");
+          let tx=0,ty=0;if(x.endsWith("%"))tx=((parseFloat(x)-50)/100)*r.width;
+          if(y.endsWith("%"))ty=((parseFloat(y)-50)/100)*r.height;
+          inner.style.transform=`translate(${tx}px,${ty}px) scale(${inner.dataset.scale})`;};
         pos();new ResizeObserver(pos).observe(cell);
         const deck=(panel.slides||[]).map(id=>all.find(s=>s.id===id)).filter(Boolean);
         if(!deck.length)return;
-        
-        (async()=>{await new Promise(r=>setTimeout(r,pi*250));while(true){for(const s of deck){inner.innerHTML="";await new Promise(done=>renderSlide(inner,{...s,suppressTitle:true},all,done));}}})();});
+        (async()=>{await new Promise(r=>setTimeout(r,pi*250));
+          while(true){for(const s of deck){inner.innerHTML="";
+            await new Promise(done=>renderSlide(inner,{...s,suppressTitle:true},all,done));}}})();
+      });
       return;
     }
 
     // ---------- MULTI-FRAME ----------
-if (slide.file?.includes("*") || (slide.frames && slide.frames.length)) {
-  const img = document.createElement("img");
-  target.appendChild(img);
+    if(slide.file?.includes("*")||(slide.frames&&slide.frames.length)){
+      const img=document.createElement("img");target.appendChild(img);
+      let frames=slide.frames||[];
+      if(!frames.length&&slide.file){
+        const pat=slide.file.replace(/^\/?/,"");
+        const r=await fetch(`/api/frames?pattern=${encodeURIComponent(pat)}`);
+        const j=await r.json();frames=j.frames||[];
+      }
+      if(!frames.length)return onDone?.();
+      if(slide.order==="random")frames.sort(()=>Math.random()-0.5);
+      await Promise.all(frames.map(src=>new Promise(r=>{const im=new Image();im.onload=im.onerror=r;im.src=src;})));
+      let dur=Number(slide.duration)>0?Number(slide.duration):undefined;
+      if(!dur&&slide.effect==="cut"&&!slide.fps)dur=frames.length*0.5;
+      playFrames(img,frames,slide.fps,slide.repeat,dur??slide.duration,slide.effect,onDone);
+      return;
+    }
 
-  let frames = slide.frames || [];
-  if (!frames.length && slide.file) {
-    const pat = slide.file.replace(/^\/?/, "");
-    const r = await fetch(`/api/frames?pattern=${encodeURIComponent(pat)}`);
-    const j = await r.json();
-    frames = j.frames || [];
-  }
-  if (!frames.length) return onDone?.();
-
-  // Preload all frames before playback
-  await Promise.all(
-    frames.map(
-      src =>
-        new Promise(res => {
-          const im = new Image();
-          im.onload = res;
-          im.onerror = res;
-          im.src = src;
-        })
-    )
-  );
-
-  // --- timing fix ---
-  // Ensure duration always has a valid positive value.
-  // If effect is "cut" and no fps defined, default to 0.5s per frame.
-  let dur = Number(slide.duration) > 0 ? Number(slide.duration) : undefined;
-  if (!dur && slide.effect === "cut" && !slide.fps) {
-    dur = frames.length * 0.5; // half-second per frame
-  }
-
-  // Now play frames using computed duration
-  playFrames(img, frames, slide.fps, slide.repeat, dur ?? slide.duration, slide.effect, onDone);
-  return;
-}
-
-
-    // ---------- STILL IMAGE ----------
-    if(slide.file && !slide.file.includes("*")){
+    // ---------- STILL ----------
+    if(slide.file&&!slide.file.includes("*")){
       const dur=slide.duration&&slide.duration>0?slide.duration:5;
       const holder=document.createElement("div");
       Object.assign(holder.style,{width:"100%",height:"100%",background:"black",display:"flex",alignItems:"center",justifyContent:"center"});
@@ -257,11 +243,14 @@ if (slide.file?.includes("*") || (slide.frames && slide.frames.length)) {
 
     // ---------- PAUSE ----------
     const dur=slide.duration&&slide.duration>0?slide.duration:5;
-    console.log(`pause-only ${slide.id} (${dur}s)`);target.style.background="black";
-    setTimeout(onDone,dur*1000);
+    target.style.background="black";setTimeout(onDone,dur*1000);
   }
 
-  function showSlide(i){if(i<0)i=slides.length-1;if(i>=slides.length)i=0;idx=i;const next=slides[idx];const ns=idx%2?b:a,cs=idx%2?a:b;renderSlide(ns,next,slides,()=>showSlide(idx+1));ns.style.opacity=1;cs.style.opacity=0;}
+  function showSlide(i){
+    if(i<0)i=slides.length-1;if(i>=slides.length)i=0;idx=i;
+    const next=slides[idx];const ns=idx%2?b:a,cs=idx%2?a:b;
+    renderSlide(ns,next,slides,()=>showSlide(idx+1));ns.style.opacity=1;cs.style.opacity=0;
+  }
   renderSlide(a,slides[0],slides,()=>showSlide(1));a.style.opacity=1;
 }
 start();

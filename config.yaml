@@ -139,6 +139,21 @@ slides:
     duration: 3
     title: "Onedrive Drive Photos"    
 
+  - id: collage_drive_photos
+    type: google-drive
+    folderId: "1xG1hbk-uOIRYjKQmFx12C9KE7VkXH1lx"
+    effect: collage
+    order: random
+    duration: 90
+    fps: 1.0
+    imageMaxPosition: 0.33   # ±% offset from center
+    imageMinSize: 0.25       # % of parent
+    imageMaxSize: 0.40
+    borderWidth: 5
+    borderColor: "white"
+    background: "black"
+    imageInEffect: cut       # cut | fade | dissolve (more below)
+    imageOutEffect: fade
 
 
   - id: house_mux_2x2
@@ -157,21 +172,21 @@ slides:
       - slides: [ front_porch_rtsp, richmond_current_weather,river_center_live_video ]  # empty
         #panel_duration: infinite
 
-  - id: mini_mux_2x2
+  - id: mux_2x2_2
     type: mux
     layout: 2x2
     duration: infinite
-    title: ""
+    title: "Home Renovation Overview"
     hide_panel_titles: true
     panels:
-      - slides: [ powder_before, powder_during, powder_after, pause_1]
+      - slides: [james_river_flyover]
         panel_duration: 210
-      - slides: [bath_before, bath_during, bath_after, pause_1 ]
+      - slides: [onedrive_photos, bath_before, bath_during, bath_after, pause_1 ]
         #panel_duration: 4
-      - slides: [ kitchen_before, kitchen_during, kitchen_after, pause_1]
+      - slides: [ google_fda_album_2025_05_20 ]
         #panel_duration: 6
-      - slides: [ kitchen_during, powder_during, bath_during]
-        #panel_duration: 6
+      - slides: [ collage_drive_photos, richmond_current_weather,river_center_live_video ]  # empty
+        #panel_duration: infinite
 
 
 
@@ -206,4 +221,4 @@ clients:
 
   EGR-JL-DSK0-SRV:
     #include: [river_center_video, kitchen_before, james_river_water_level, weather_widget, kitchen_animation, kitchen_after, pause_2]
-    include: [ house_mux_2x2 ]
+    include: [ mux_2x2_2 ]
