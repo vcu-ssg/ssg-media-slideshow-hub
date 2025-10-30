@@ -223,3 +223,6 @@ clients:
   EGR-JL-DSK0-SRV:
     #include: [river_center_video, kitchen_before, james_river_water_level, weather_widget, kitchen_animation, kitchen_after, pause_2]
     include: [ mux_2x2_2 ]
+
+  EGR-JL-RAK1-SRV:
+    include: [ mux_2x2_2 ]
