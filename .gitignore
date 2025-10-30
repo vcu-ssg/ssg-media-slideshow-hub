@@ -3,3 +3,7 @@ npm-debug.log
 .DS_Store
 cache/
 .env
+
+
+logs/*.log
+!logs/.gitkeep

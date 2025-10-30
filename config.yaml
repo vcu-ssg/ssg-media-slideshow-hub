@@ -167,7 +167,7 @@ slides:
         panel_duration: 210
       - slides: [onedrive_photos, bath_before, bath_during, bath_after, pause_1 ]
         #panel_duration: 4
-      - slides: [ google_fda_album_2025_05_20 ]
+      - slides: [ collage_drive_photos, google_fda_album_2025_05_20 ]
         #panel_duration: 6
       - slides: [ front_porch_rtsp, richmond_current_weather,river_center_live_video ]  # empty
         #panel_duration: infinite
@@ -212,6 +212,7 @@ clients:
     #include: [google_fda_album_2025_05_20]
     #include: [ richmond_current_conditions ]
     include: [ house_mux_2x2 ]
+    #include: [ collage_drive_photos ]
 
   kiosk1.local:
     include: [kitchen_before, kitchen_during, bath_during, bath_after ]
