@@ -85,6 +85,11 @@ slides:
     url: "/pages/weather.html?city=Richmond,VA"
     duration: 15
 
+  - id: richmond_current_weather_inf
+    type: html
+    url: "/pages/weather.html?city=Richmond,VA"
+    duration: infinite
+
 
   - id: richmond_current_conditions
     type: html
@@ -221,8 +226,8 @@ clients:
     include: [kitchen_before, kitchen_during, kitchen_after, pause_2, powder_before, powder_during, powder_after, pause_2, bath_before, bath_during, bath_after, pause_2 ]
 
   EGR-JL-DSK0-SRV:
-    #include: [river_center_video, kitchen_before, james_river_water_level, weather_widget, kitchen_animation, kitchen_after, pause_2]
-    include: [ mux_2x2_2 ]
+    include: [richmond_current_weather_inf]
+    #include: [ mux_2x2_2 ]
 
   EGR-JL-RAK1-SRV:
     include: [ mux_2x2_2 ]
