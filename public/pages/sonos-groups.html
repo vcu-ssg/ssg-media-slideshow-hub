@@ -48,7 +48,7 @@ html, body {
   border: 0.25em solid transparent;
   overflow: hidden;
   transition: background 0.3s ease, border 0.3s ease;
-  height: 80%;                     /* ↓ scaled down for better width fit */
+  height: 80%;
   width: 95%;
   box-sizing: border-box;
 }
@@ -59,7 +59,7 @@ html, body {
 
 /* ───────── IMAGE ───────── */
 .artwork {
-  flex: 0 0 50%;                   /* half of card height */
+  flex: 0 0 50%;
   width: 100%;
   object-fit: cover;
   background: #333;
@@ -74,7 +74,7 @@ html, body {
   justify-content: flex-start;
   padding: 0.6em 0.9em;
   font-size: 1.2em;
-  /* line-height: 1.3; */
+  /* line-height: 1.35;*/
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -100,7 +100,7 @@ html, body {
 
 .artist, .album, .source {
   color: #bbb;
-  font-size: 0.85em;
+  font-size: 0.95em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -108,7 +108,7 @@ html, body {
 
 .members {
   margin-top: 0.4em;
-  font-size: 0.8em;
+  font-size: 0.85em;
   color: #aaa;
   line-height: 1.3;
   overflow: hidden;
@@ -121,6 +121,36 @@ html, body {
   border-radius: 0.3em;
   background: #333;
   color: #ccc;
+}
+
+/* ───────── CONTROLS ───────── */
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.8em;
+  margin-top: auto;
+  padding: 0.5em 0.8em;
+  border-top: 0.15em solid #222;
+}
+
+.controls button {
+  background: #222;
+  color: #eee;
+  border: none;
+  border-radius: 0.4em;
+  padding: 0.35em 0.6em;
+  font-size: 1.2em;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+.controls button:hover {
+  background: #444;
+  transform: scale(1.1);
+}
+.controls button:active {
+  background: #666;
+  transform: scale(0.95);
 }
 
 #last-updated {
@@ -155,6 +185,21 @@ function volumeIcon(vol) {
   if (vol < 10) return "🔈";
   if (vol < 25) return "🔉";
   return "🔊";
+}
+
+async function sendSonosCommand(action, group) {
+  try {
+    const res = await fetch(`/api/sonos/${action}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ group }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    console.log(`✅ ${action} sent to ${group}`);
+    fetchGroups(); // refresh
+  } catch (err) {
+    console.error(`❌ Failed ${action}:`, err);
+  }
 }
 
 function renderGroups(groups) {
@@ -210,7 +255,20 @@ function renderGroups(groups) {
       </div>
     `;
 
-    card.append(img, info);
+    /* ───────── BUTTONS ───────── */
+    const controls = document.createElement("div");
+    controls.className = "controls";
+    controls.innerHTML = `
+      <button title="Play">▶️</button>
+      <button title="Pause">⏸️</button>
+      <button title="Stop">⏹️</button>
+    `;
+    const [btnPlay, btnPause, btnStop] = controls.querySelectorAll("button");
+    btnPlay.onclick = () => sendSonosCommand("play", g.name);
+    btnPause.onclick = () => sendSonosCommand("pause", g.name);
+    btnStop.onclick = () => sendSonosCommand("stop", g.name);
+
+    card.append(img, info, controls);
     row.appendChild(card);
   });
 
@@ -221,7 +279,7 @@ function renderGroups(groups) {
   }
 }
 
-/* ---------- Dynamic scaling (text only) ---------- */
+/* ---------- Dynamic scaling ---------- */
 function updateScale() {
   const root = document.documentElement;
   const h = document.documentElement.clientHeight || document.body.clientHeight;
