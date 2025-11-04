@@ -84,6 +84,8 @@ app.use("/photos", express.static(PHOTOS_DIR));
 app.use("/cache", express.static(CACHE_DIR));
 app.use("/pages", express.static(PAGES_DIR));
 
+
+
 // ------------------------------------------------------------
 // 🔍 Helpers
 // ------------------------------------------------------------
