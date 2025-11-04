@@ -19,6 +19,8 @@ import { createMeteobridgeRouter } from "./meteobridge.js";
 import { createWunderRouter } from "./wunderapi.js";
 import { createVisualCrossingRouter } from "./visualcrossingapi.js";
 
+import { createSonosRouter } from "./sonosplayer.js";
+
 
 // ------------------------------------------------------------
 // 🧭 Environment setup
@@ -385,6 +387,12 @@ app.use(
   "/api/visualcrossing",
   createVisualCrossingRouter(express, process.env.VISUALCROSSING_KEY, log)
 );
+
+// ------------------------------------------------------------
+//  sonos server
+// ------------------------------------------------------------
+
+app.use("/api/sonos", createSonosRouter(express, log));
 
 
 // ------------------------------------------------------------

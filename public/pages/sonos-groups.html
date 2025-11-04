@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sonos Groups Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #000;
+      color: #eee;
+      font-family: system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: start;
+      overflow: hidden;
+    }
+
+    #groups {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      grid-auto-rows: 1fr;
+      width: 100%;
+      height: 100%;
+      gap: 0.6vw;
+      padding: 0.6vw;
+      box-sizing: border-box;
+    }
+
+    .group-card {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      background: #111;
+      border-radius: 0.5vw;
+      overflow: hidden;
+      min-width: 0;
+      transition: background 0.3s ease, border 0.3s ease;
+      padding: 0.4vw;
+      box-sizing: border-box;
+      border: 0.25vw solid transparent;
+    }
+
+    .group-card.playing { border-color: #0f0a; background: #101910; }
+    .group-card.paused_playback { border-color: #ffa500aa; background: #191910; }
+    .group-card.stopped { border-color: #555a; background: #151515; }
+
+    .artwork {
+      flex: 0 0 25%;
+      max-width: 25%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 0.4vw;
+      margin-right: 0.8vw;
+      background: #333;
+    }
+
+    .info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: calc(0.7vw + 0.4em);
+      overflow: hidden;
+    }
+
+    .group-name {
+      font-weight: 700;
+      color: #fff;
+      font-size: calc(0.8vw + 0.4em);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .track-title {
+      font-weight: 600;
+      color: #f6c36a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .artist, .album, .source {
+      color: #bbb;
+      font-size: 0.9em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .members {
+      margin-top: 0.3em;
+      font-size: 0.8em;
+      color: #aaa;
+      line-height: 1.3;
+    }
+
+    .members span { display: block; }
+
+    .badge {
+      font-size: 0.75em;
+      padding: 0.15em 0.4em;
+      border-radius: 0.3em;
+      background: #333;
+      color: #ccc;
+      margin-left: 0.4em;
+    }
+
+    #last-updated {
+      position: absolute;
+      bottom: 0.3em;
+      right: 0.6em;
+      font-size: 0.8em;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div id="groups"></div>
+  <div id="last-updated"></div>
+
+  <script>
+    async function fetchGroups() {
+      try {
+        const res = await fetch("/api/sonos/groups");
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+        renderGroups(data.groups);
+      } catch (err) {
+        console.error("Error fetching groups:", err);
+        document.getElementById("last-updated").innerText = "Error loading data";
+      }
+    }
+
+    function volumeIcon(vol) {
+      if (vol === null || vol === undefined) return "—";
+      if (vol < 10) return "🔈";
+      if (vol < 25) return "🔉";
+      return "🔊";
+    }
+
+    function renderGroups(groups) {
+      const grid = document.getElementById("groups");
+      grid.innerHTML = "";
+      document.getElementById("last-updated").textContent =
+        "Updated " + new Date().toLocaleTimeString();
+
+      groups.forEach((g) => {
+        const card = document.createElement("div");
+        card.className = `group-card ${g.status}`;
+
+        const img = document.createElement("img");
+        img.className = "artwork";
+        img.src = g.track.artwork || "/placeholder.jpg";
+        img.alt = g.name;
+        img.onerror = () => { img.src = "/placeholder.jpg"; };
+
+        const info = document.createElement("div");
+        info.className = "info";
+
+        // Build HTML for members + volumes
+        const memberLines = g.members
+          .map(
+            (m) =>
+              `<span>${m.name}: ${volumeIcon(m.volume)} ${m.volume ?? ""}</span>`
+          )
+          .join("");
+
+        info.innerHTML = `
+          <div class="group-name">
+            ${g.name}
+            <span class="badge">${g.status}</span>
+          </div>
+          <div class="track-title">${g.track.title || "—"}</div>
+          <div class="artist">${g.track.artist || ""}</div>
+          <div class="album">${g.track.album || ""}</div>
+          <div class="source">🎧 ${g.track.source || "Unknown"}</div>
+          <div class="members">
+            ${memberLines}
+            <span><strong>Avg:</strong> ${volumeIcon(g.avgVolume)} ${g.avgVolume ?? "—"}</span>
+          </div>
+        `;
+
+        card.append(img, info);
+        grid.appendChild(card);
+      });
+    }
+
+    fetchGroups();
+    setInterval(fetchGroups, 15000);
+  </script>
+</body>
+</html>

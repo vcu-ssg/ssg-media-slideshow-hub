@@ -128,6 +128,11 @@ slides:
     url: "/pages/front_porch_rtsp.html"
     duration: 45
 
+  - id: sonos_status
+    type: html
+    url: "/pages/sonos-groups.html"
+    duration: 30
+
   - id: google_fda_album_2025_05_20
     type: google-drive
     folderId: "1xG1hbk-uOIRYjKQmFx12C9KE7VkXH1lx"
@@ -170,7 +175,7 @@ slides:
     panels:
       - slides: [james_river_flyover]
         panel_duration: 210
-      - slides: [onedrive_photos, bath_before, bath_during, bath_after, pause_1 ]
+      - slides: [ sonos_status, onedrive_photos, bath_before, bath_during, bath_after, pause_1 ]
         #panel_duration: 4
       - slides: [ collage_drive_photos, google_fda_album_2025_05_20 ]
         #panel_duration: 6

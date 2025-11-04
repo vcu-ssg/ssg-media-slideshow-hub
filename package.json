@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/vcu-ssg/ssg-kiosk-photo-player#readme",
   "dependencies": {
+    "@svrooij/sonos": "^2.5.0",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "glob": "^11.0.3",
