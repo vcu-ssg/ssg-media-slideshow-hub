@@ -203,3 +203,16 @@ cache-clean:
 	@$(LOGO) "Removing cached images..."
 	@rm -rf cache/*
 	@$(LOGO) "🧹 Cache cleared."
+
+
+register-to-openweather:
+	curl -X POST "https://api.openweathermap.org/data/3.0/stations?appid=8275a6f4e4c2f13eef7b01b48e7e26f4" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"external_id": "KVARICHM156",
+		"name": "Fan District - Richmond, VA",
+		"latitude": 37.554,
+		"longitude": -77.466,
+		"altitude": 67
+	}'
+

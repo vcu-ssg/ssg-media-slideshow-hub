@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hourly Forecast</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      font-family: "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(to bottom, #004080, #1976d2);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      text-align: center;
+      overflow-x: hidden;
+    }
+
+    #location {
+      margin-top: 1rem;
+      font-size: 1.4rem;
+      font-weight: 500;
+    }
+
+    .forecast-container {
+      margin-top: 1rem;
+      display: flex;
+      gap: 1rem;
+      overflow-x: auto;
+      justify-content: flex-start;
+      padding: 0 1rem;
+      scroll-behavior: smooth;
+      width: 100%;
+    }
+
+    .hour {
+      flex: 0 0 auto;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 0.5rem 0.75rem;
+      text-align: center;
+      min-width: 80px;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .hour .time {
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+
+    .hour img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      margin: 0.25rem 0;
+      background-color: white;       /* fixes sun tint */
+      border-radius: 50%;
+      padding: 4px;
+    }
+
+    .hour .temp {
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+
+    .hour .precip {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    footer {
+      margin-top: auto;
+      font-size: 0.9rem;
+      opacity: 0.7;
+      padding-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="location">Loading...</div>
+  <div class="forecast-container" id="hourly"></div>
+  <footer id="footer"></footer>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const zip  = params.get("zip");
+    const city = params.get("city");
+    const lat  = params.get("lat");
+    const lon  = params.get("lon");
+    const units = "imperial";
+
+    let query = "";
+    if (zip) query = `zip=${zip}`;
+    else if (city) query = `city=${encodeURIComponent(city)}`;
+    else if (lat && lon) query = `lat=${lat}&lon=${lon}`;
+    else document.getElementById("location").textContent = "⚠️ Missing ?zip= or ?city= query";
+
+    const iconBase = "https://www.visualcrossing.com/img/";
+    const fallbackIcon = "https://openweathermap.org/img/wn/01d.png";
+    function getIconUrl(name) {
+      return name ? `${iconBase}${name}.svg` : fallbackIcon;
+    }
+
+    function toDate(h) {
+      if (h.datetimeEpoch) return new Date(h.datetimeEpoch * 1000);
+      if (h.datetime) return new Date(h.datetime);
+      return null;
+    }
+
+    function formatHour(date) {
+      if (!date || isNaN(date)) return "--";
+      return date.toLocaleTimeString([], { hour: "numeric", hour12: true });
+    }
+
+    async function getHourly() {
+      try {
+        const res = await fetch(`/api/visualcrossing/hourly?${query}&units=${units}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        const loc = data.resolvedAddress || data.address || "Unknown location";
+        document.getElementById("location").textContent = loc;
+
+        const hourlyDiv = document.getElementById("hourly");
+        hourlyDiv.innerHTML = "";
+
+        let hours = data.hours || [];
+        if (!hours.length) {
+          hourlyDiv.innerHTML = "<p>No hourly data available.</p>";
+          return;
+        }
+
+        const now = new Date();
+        const startIndex = hours.findIndex(h => {
+          const d = toDate(h);
+          return d && d >= now;
+        });
+        if (startIndex > 0) hours = hours.slice(startIndex);
+        const displayHours = hours.slice(0, 12);
+
+        for (const h of displayHours) {
+          const d = toDate(h);
+          const hourLabel = formatHour(d);
+          const iconUrl = getIconUrl(h.icon);
+          const temp = Math.round(h.temp);
+          const precip = Math.round(h.precipprob || 0);
+
+          const el = document.createElement("div");
+          el.className = "hour";
+          el.innerHTML = `
+            <div class="time">${hourLabel}</div>
+            <img src="${iconUrl}" alt="${h.conditions || h.icon}"
+                 onerror="this.src='${fallbackIcon}'">
+            <div class="temp">${temp}°</div>
+            <div class="precip">${precip}%</div>`;
+          hourlyDiv.appendChild(el);
+        }
+
+        const updated = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        document.getElementById("footer").textContent = `Updated ${updated}`;
+      } catch (err) {
+        console.error(err);
+        document.getElementById("location").textContent = `⚠️ ${err.message}`;
+      }
+    }
+
+    getHourly();
+  </script>
+</body>
+</html>

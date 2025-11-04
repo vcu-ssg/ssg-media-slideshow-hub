@@ -15,6 +15,10 @@ import sharp from "sharp";
 import { createWeatherRouter } from "./weatherapi.js";
 import { listGoogleImages } from "./googleimages.js";
 import { listOneDriveImages } from "./onedriveimages.js";
+import { createMeteobridgeRouter } from "./meteobridge.js";
+import { createWunderRouter } from "./wunderapi.js";
+import { createVisualCrossingRouter } from "./visualcrossingapi.js";
+
 
 // ------------------------------------------------------------
 // 🧭 Environment setup
@@ -355,6 +359,33 @@ app.get("/api/image", async (req, res) => {
 // 🌦️ Mount modular weather API
 // ------------------------------------------------------------
 app.use("/api/weather", createWeatherRouter(express, OPENWEATHER_KEY, log));
+
+app.use(
+  "/api/meteobridge",
+  createMeteobridgeRouter({
+    host: process.env.METEOBRIDGE_IP,
+    username: process.env.METEOBRIDGE_USERNAME,
+    password: process.env.METEOBRIDGE_PASSWORD,
+    cacheTTL: 30, // seconds of caching
+    log,
+  })
+);
+
+
+app.use(
+  "/api/wunder",
+  createWunderRouter(
+    express,
+    process.env.WUNDERGROUND_API_KEY,
+    log
+  )
+);
+
+app.use(
+  "/api/visualcrossing",
+  createVisualCrossingRouter(express, process.env.VISUALCROSSING_KEY, log)
+);
+
 
 // ------------------------------------------------------------
 // 🚀 Start server

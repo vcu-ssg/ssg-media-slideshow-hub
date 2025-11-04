@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Weather Dashboard</title>
+  <title>Forecasts</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Weather Icons CDN -->
+  <!-- Weather Icons -->
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.10/css/weather-icons.min.css"
@@ -21,39 +21,44 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      overflow-y: auto;
       text-align: center;
     }
-    .current { font-size: 4rem; font-weight: 300; margin-bottom: 0.5rem; }
-    .highlow { font-size: 1.5rem; opacity: 0.8; margin-bottom: 2rem; }
-    .forecast { display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; }
-    .day { display: flex; flex-direction: column; align-items: center; }
-    .day-name { font-size: 1.2rem; font-weight: 500; margin-bottom: 0.3rem; }
-    .day-temp { font-size: 1.8rem; font-weight: 300; margin-top: 0.3rem; }
-    .icon-bg {
+    h1 { margin-top: 1rem; font-weight: 400; }
+    .section { margin: 1.5rem 0; width: 90%; max-width: 900px; }
+    .current { font-size: 3.5rem; font-weight: 300; margin-bottom: 0.3rem; }
+    .highlow { font-size: 1.2rem; opacity: 0.8; margin-bottom: 1rem; }
+    .icon { font-size: 3rem; color: #ffeb3b; filter: drop-shadow(0 0 3px rgba(255,255,255,0.6)); }
+    .hourly, .daily { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+    .hour, .day {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      margin: 0.5rem 0;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 0.5rem 0.8rem;
+      width: 80px;
     }
-    .icon {
-      font-size: 3.5rem;
-      color: #ffeb3b; /* bright yellow for day icons */
-      filter: drop-shadow(0 0 3px rgba(255,255,255,0.7));
-    }
-    footer {
-      position: absolute;
-      bottom: 0.8rem;
-      font-size: 0.9rem;
-      opacity: 0.7;
-    }
+    .hour-time, .day-name { font-weight: 500; margin-bottom: 0.2rem; }
+    .temp { font-size: 1.2rem; font-weight: 300; margin-top: 0.2rem; }
+    footer { margin: 1.5rem 0; font-size: 0.9rem; opacity: 0.7; }
   </style>
 </head>
 <body>
-  <div id="location">Loading...</div>
+  <h1 id="location">Loading...</h1>
   <div class="current" id="current-temp"></div>
   <div class="highlow" id="high-low"></div>
-  <div class="forecast" id="forecast"></div>
+
+  <div class="section">
+    <h2>Next 12 Hours</h2>
+    <div class="hourly" id="hourly"></div>
+  </div>
+
+  <div class="section">
+    <h2>5-Day Forecast</h2>
+    <div class="daily" id="forecast"></div>
+  </div>
+
   <footer id="footer"></footer>
 
   <script>
@@ -61,7 +66,6 @@
     let lastUpdate = 0;
     let timer = null;
 
-    // Map OpenWeather icon codes → Weather Icons classes
     const ICON_MAP = {
       "01d": "wi-day-sunny",
       "01n": "wi-night-clear",
@@ -85,7 +89,7 @@
 
     function formatTime(ts) {
       const d = new Date(ts);
-      return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      return d.toLocaleTimeString("en-US", { hour: "numeric", hour12: true });
     }
 
     async function getWeather() {
@@ -98,8 +102,7 @@
       if (zip) query = `zip=${encodeURIComponent(zip)}`;
       else if (city) query = `city=${encodeURIComponent(city)}`;
       else {
-        document.getElementById("location").textContent =
-          "⚠️ Missing ?zip= or ?city= query parameter";
+        document.getElementById("location").textContent = "⚠️ Missing ?zip= or ?city= query parameter";
         return;
       }
 
@@ -118,87 +121,93 @@
         const current = await currRes.json();
         const forecast = await forecastRes.json();
 
-        // --- Location ---
         const cityName = current.name || forecast.city?.name || "Unknown City";
         const stateAbbr = current.state_abbr || forecast.city?.state_abbr || "";
         document.getElementById("location").textContent =
           stateAbbr ? `${cityName}, ${stateAbbr}` : cityName;
 
-        // --- Current temperature ---
+        // Current conditions
         const iconCode = current.weather?.[0]?.icon || "01d";
         const iconClass = ICON_MAP[iconCode] || "wi-day-sunny";
         const temp = Math.round(current.main?.temp);
-        document.getElementById("current-temp").innerHTML = `
-          <div class="icon-bg"><i class="wi ${iconClass} icon"></i></div>
-          ${temp}°F
-        `;
+        document.getElementById("current-temp").innerHTML =
+          `<i class="wi ${iconClass} icon"></i><br>${temp}°F`;
 
-        // --- Today's high/low ---
+        // High/low today
         if (forecast.list?.length) {
           const today = new Date().toLocaleDateString("en-CA");
           const todayTemps = forecast.list
             .filter(p => new Date(p.dt * 1000).toLocaleDateString("en-CA") === today)
             .map(p => p.main.temp);
-
           if (todayTemps.length) {
             const high = Math.round(Math.max(...todayTemps));
             const low = Math.round(Math.min(...todayTemps));
             document.getElementById("high-low").textContent = `High ${high}° • Low ${low}°`;
-          } else document.getElementById("high-low").textContent = "";
+          }
         }
 
-        // --- 5-day forecast ---
-        const byDate = {};
-        const tzOffsetSec = forecast.city?.timezone ?? 0;
-        const nowUtcMs = Date.now();
-        const cityNow = new Date(nowUtcMs + tzOffsetSec * 1000);
-        const todayCity = new Date(cityNow);
-        todayCity.setHours(0, 0, 0, 0);
-        const tomorrowCity = new Date(todayCity);
-        tomorrowCity.setDate(todayCity.getDate() + 1);
+        // --- Hourly forecast (next 12 hours) ---
+        const hourlyEl = document.getElementById("hourly");
+        hourlyEl.innerHTML = "";
+        //const tzOffsetSec = forecast.city?.timezone ?? 0;
+        const tzOffsetSec = 0;
+        const nowUtc = Date.now();
+        const future = forecast.list.filter(e => e.dt * 1000 > nowUtc).slice(0, 12);
 
+        for (const entry of future) {
+          const local = new Date(entry.dt * 1000 + tzOffsetSec * 1000);
+          const time = local.toLocaleTimeString("en-US", { hour: "numeric", hour12: true });
+          const t = Math.round(entry.main.temp);
+          const iconClass = ICON_MAP[entry.weather[0].icon] || "wi-cloud";
+          const div = document.createElement("div");
+          div.className = "hour";
+          div.innerHTML = `
+            <div class="hour-time">${time}</div>
+            <i class="wi ${iconClass} icon"></i>
+            <div class="temp">${t}°</div>
+          `;
+          hourlyEl.appendChild(div);
+        }
+
+        // --- Daily forecast (5 days) ---
+        const byDate = {};
+        const todayCity = new Date();
+        todayCity.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(todayCity);
+        tomorrow.setDate(todayCity.getDate() + 1);
         for (const entry of forecast.list || []) {
           const localMs = entry.dt * 1000 + tzOffsetSec * 1000;
           const localDate = new Date(localMs);
-          if (localDate < tomorrowCity) continue;
+          if (localDate < tomorrow) continue;
           const d = localDate.toISOString().split("T")[0];
           if (!byDate[d]) byDate[d] = [];
           byDate[d].push(entry);
         }
-
         const dates = Object.keys(byDate).sort().slice(0, 5);
         const forecastEl = document.getElementById("forecast");
         forecastEl.innerHTML = "";
 
         for (const d of dates) {
-          const dayEntries = byDate[d];
-          if (!dayEntries.length) continue;
-          const max = Math.round(Math.max(...dayEntries.map(e => e.main.temp_max)));
-          const min = Math.round(Math.min(...dayEntries.map(e => e.main.temp_min)));
-          const midIcon = dayEntries[Math.floor(dayEntries.length / 2)].weather[0].icon;
-          const midIconClass = ICON_MAP[midIcon] || "wi-day-sunny";
+          const entries = byDate[d];
+          const max = Math.round(Math.max(...entries.map(e => e.main.temp_max)));
+          const min = Math.round(Math.min(...entries.map(e => e.main.temp_min)));
+          const midIcon = entries[Math.floor(entries.length / 2)].weather[0].icon;
           const weekday = new Date(d + "T12:00:00").toLocaleDateString("en-US", { weekday: "short" });
-
           const div = document.createElement("div");
           div.className = "day";
           div.innerHTML = `
             <div class="day-name">${weekday}</div>
-            <div class="icon-bg"><i class="wi ${midIconClass} icon"></i></div>
-            <div class="day-temp">${max}° / ${min}°</div>
+            <i class="wi ${ICON_MAP[midIcon] || "wi-day-sunny"} icon"></i>
+            <div class="temp">${max}° / ${min}°</div>
           `;
           forecastEl.appendChild(div);
         }
 
         lastUpdate = Date.now();
-        document.getElementById("footer").textContent = `Last updated ${formatTime(lastUpdate)}`;
+        document.getElementById("footer").textContent = `Last updated ${new Date().toLocaleTimeString()}`;
       } catch (err) {
-        console.error("Weather fetch failed:", err);
-        document.getElementById("location").innerHTML =
-          `<span style="color:#ffcccc">⚠️ ${err.message}</span>`;
-        document.getElementById("current-temp").textContent = "";
-        document.getElementById("high-low").textContent = "";
-        document.getElementById("forecast").innerHTML = "";
-        document.getElementById("footer").textContent = "";
+        console.error(err);
+        document.getElementById("location").textContent = `⚠️ ${err.message}`;
       }
     }
 
@@ -207,8 +216,7 @@
     function scheduleRefresh() {
       clearTimeout(timer);
       timer = setTimeout(() => {
-        const elapsed = Date.now() - lastUpdate;
-        if (elapsed >= REFRESH_INTERVAL) getWeather();
+        if (Date.now() - lastUpdate >= REFRESH_INTERVAL) getWeather();
         scheduleRefresh();
       }, REFRESH_INTERVAL);
     }
