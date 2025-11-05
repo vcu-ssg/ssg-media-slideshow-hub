@@ -29,7 +29,11 @@ dotenv.config({ path: process.env.ENV_PATH || "/home/john/.env" });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(__dirname, ".."); // project root (one level up)
+
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 
 const PORT = process.env.KIOSK_PORT || process.env.PORT || 3000;
 const CLIENT_ID = process.env.CLIENT_ID || os.hostname() || "default-client";

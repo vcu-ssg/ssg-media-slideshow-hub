@@ -16,7 +16,6 @@ html, body {
   overflow: hidden;
 }
 
-/* ───────── GRID CONTAINER ───────── */
 #groups {
   display: flex;
   justify-content: center;
@@ -74,7 +73,6 @@ html, body {
   justify-content: flex-start;
   padding: 0.6em 0.9em;
   font-size: 1.2em;
-  /* line-height: 1.35;*/
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -126,12 +124,19 @@ html, body {
 /* ───────── CONTROLS ───────── */
 .controls {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 0.8em;
-  margin-top: auto;
   padding: 0.5em 0.8em;
   border-top: 0.15em solid #222;
+  gap: 0.4em;
+}
+
+.button-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.6em;
 }
 
 .controls button {
@@ -140,17 +145,21 @@ html, body {
   border: none;
   border-radius: 0.4em;
   padding: 0.35em 0.6em;
-  font-size: 1.2em;
+  font-size: 1.3em;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.1s ease;
 }
-.controls button:hover {
-  background: #444;
-  transform: scale(1.1);
+.controls button:hover { background: #444; transform: scale(1.1); }
+.controls button:active { background: #666; transform: scale(0.95); }
+
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  width: 85%;
 }
-.controls button:active {
-  background: #666;
-  transform: scale(0.95);
+.volume-control input[type="range"] {
+  width: 100%;
 }
 
 #last-updated {
@@ -187,18 +196,32 @@ function volumeIcon(vol) {
   return "🔊";
 }
 
-async function sendSonosCommand(action, group) {
+async function sendSonosCommand(action, id) {
   try {
     const res = await fetch(`/api/sonos/${action}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ group }),
+      body: JSON.stringify({ id }),
     });
     if (!res.ok) throw new Error(await res.text());
-    console.log(`✅ ${action} sent to ${group}`);
+    console.log(`✅ ${action} sent to ${id}`);
     fetchGroups(); // refresh
   } catch (err) {
     console.error(`❌ Failed ${action}:`, err);
+  }
+}
+
+async function setVolume(id, level) {
+  try {
+    const res = await fetch(`/api/sonos/volume`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, level }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    console.log(`🔊 Volume ${level} set for ${id}`);
+  } catch (err) {
+    console.error("❌ Volume error:", err);
   }
 }
 
@@ -208,18 +231,8 @@ function renderGroups(groups) {
   document.getElementById("last-updated").textContent =
     "Updated " + new Date().toLocaleTimeString();
 
-  const totalSlots = Math.max(1, groups.length );
+  const totalSlots = Math.max(1, groups.length);
   row.style.gridTemplateColumns = `repeat(${totalSlots}, 1fr)`;
-
-  const fillerCount = Math.max(0, totalSlots - groups.length);
-  const fillerLeft = Math.floor(fillerCount / 2);
-  const fillerRight = fillerCount - fillerLeft;
-
-  for (let i = 0; i < fillerLeft; i++) {
-    const ghost = document.createElement("div");
-    ghost.style.visibility = "hidden";
-    row.appendChild(ghost);
-  }
 
   groups.forEach((g) => {
     const card = document.createElement("div");
@@ -227,17 +240,27 @@ function renderGroups(groups) {
 
     const img = document.createElement("img");
     img.className = "artwork";
-    img.src = g.track.artwork || "/placeholder.jpg";
+  //  img.src = g.track.artwork || "/placeholder.jpg";
     img.alt = g.name;
-    img.onerror = () => { img.src = "/placeholder.jpg"; };
+//    img.onerror = () => { img.src = "/placeholder.jpg"; };
+
+
+    if (g.track.artwork && g.track.artwork !== "/placeholder.jpg") {
+      img.src = g.track.artwork;
+    } else {
+      img.src = "/cache/artwork/spotify-default.jpg"; // or any valid local fallback
+    }
+
+    img.onerror = () => {
+      console.warn("Artwork failed for", g.name, "→ using default");
+      img.src = "/cache/artwork/spotify-default.jpg";
+    };
+
 
     const info = document.createElement("div");
     info.className = "info";
-
     const memberLines = g.members
-      .map((m) =>
-        `<span>${m.name}: ${volumeIcon(m.volume)} ${m.volume ?? ""}</span>`
-      )
+      .map((m) => `<span>${m.name}: ${volumeIcon(m.volume)} ${m.volume ?? ""}</span>`)
       .join("");
 
     info.innerHTML = `
@@ -255,28 +278,40 @@ function renderGroups(groups) {
       </div>
     `;
 
-    /* ───────── BUTTONS ───────── */
+    /* ───────── CONTROLS ───────── */
     const controls = document.createElement("div");
     controls.className = "controls";
     controls.innerHTML = `
-      <button title="Play">▶️</button>
-      <button title="Pause">⏸️</button>
-      <button title="Stop">⏹️</button>
+      <div class="button-row">
+        <button title="Previous">⏮️</button>
+        <button title="Play/Pause">▶️/⏸️</button>
+        <button title="Next">⏭️</button>
+      </div>
+      <div class="volume-control">
+        <span id="vol-icon">${volumeIcon(g.avgVolume)}</span>
+        <input type="range" min="0" max="100" value="${g.avgVolume ?? 0}" />
+      </div>
     `;
-    const [btnPlay, btnPause, btnStop] = controls.querySelectorAll("button");
-    btnPlay.onclick = () => sendSonosCommand("play", g.name);
-    btnPause.onclick = () => sendSonosCommand("pause", g.name);
-    btnStop.onclick = () => sendSonosCommand("stop", g.name);
+    const [btnPrev, btnToggle, btnNext] = controls.querySelectorAll("button");
+    const slider = controls.querySelector("input[type=range]");
+    const volIcon = controls.querySelector("#vol-icon");
+
+    btnPrev.onclick = () => sendSonosCommand("previous", g.id);
+    btnNext.onclick = () => sendSonosCommand("next", g.id);
+    btnToggle.onclick = () => {
+      const isPlaying = g.status === "playing";
+      sendSonosCommand(isPlaying ? "pause" : "play", g.id);
+    };
+
+    slider.oninput = (e) => {
+      const level = e.target.value;
+      volIcon.textContent = volumeIcon(level);
+    };
+    slider.onchange = (e) => setVolume(g.id, e.target.value);
 
     card.append(img, info, controls);
     row.appendChild(card);
   });
-
-  for (let i = 0; i < fillerRight; i++) {
-    const ghost = document.createElement("div");
-    ghost.style.visibility = "hidden";
-    row.appendChild(ghost);
-  }
 }
 
 /* ---------- Dynamic scaling ---------- */
@@ -289,7 +324,6 @@ function updateScale() {
   if (scale > 2.0) scale = 2.0;
   root.style.setProperty("--scale", scale.toFixed(3));
 }
-
 window.addEventListener("resize", updateScale);
 new ResizeObserver(updateScale).observe(document.body);
 
