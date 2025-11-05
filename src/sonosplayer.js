@@ -385,30 +385,6 @@ async function buildGroups() {
     }
   });
 
-  // Volume
-  router.all("/volume", async (req, res) => {
-    try {
-      const groupId =
-        req.body?.groupId || req.query?.groupId || req.body?.id || req.query?.id;
-      const level = req.body?.level ?? req.query?.level;
-      const mgr = await ensureManager();
-      const coord = mgr.Devices.find((d) => d.Uuid === groupId);
-      if (!coord) throw new Error(`Group not found for id=${groupId}`);
-
-      if (level !== undefined) {
-        const v = Number(level);
-        if (isNaN(v) || v < 0 || v > 100) throw new Error("Volume must be 0–100");
-        await coord.RenderingControlService.SetGroupVolume(v);
-        res.json({ ok: true, id: groupId, volume: v });
-      } else {
-        const v = await coord.RenderingControlService.GetGroupVolume();
-        res.json({ id: groupId, volume: v });
-      }
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
   // Unified transport actions
   const actions = {
     play: "Play",
@@ -466,25 +442,69 @@ async function buildGroups() {
   }
 
 
-router.get("/debug/tunein", async (req, res) => {
-  const host = req.query.host || "192.168.100.243";
-  const resp = await fetch(`http://${host}:1400/MediaRenderer/AVTransport/Control`, {
-    method: "POST",
-    headers: {
-      "SOAPACTION": '"urn:schemas-upnp-org:service:AVTransport:1#GetMediaInfo"',
-      "Content-Type": 'text/xml; charset="utf-8"',
-    },
-    body: `<?xml version="1.0" encoding="utf-8"?>
-      <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
-                  s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
-        <s:Body>
-          <u:GetMediaInfo xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
-            <InstanceID>0</InstanceID>
-          </u:GetMediaInfo>
-        </s:Body>
-      </s:Envelope>`,
-  });
-  res.type("text/xml").send(await resp.text());
+  // ───────────────────────────────
+// Volume endpoint (fixed for Sonos groups)
+// ───────────────────────────────
+router.all("/volume", async (req, res) => {
+  try {
+    const groupId =
+      req.body?.groupId || req.query?.groupId || req.body?.id || req.query?.id;
+    const level = req.body?.level ?? req.query?.level;
+
+    const mgr = await ensureManager();
+    const coord = mgr.Devices.find((d) => d.Uuid === groupId);
+    if (!coord) throw new Error(`Group not found for id=${groupId}`);
+
+    // Find the members of this group from the topology
+    const groups = await buildGroups();
+    const group = groups.find((g) => g.id === groupId);
+    if (!group) throw new Error(`Group not found in topology for id=${groupId}`);
+
+    if (level !== undefined) {
+      // ─── Set group volume (per member) ───
+      const v = Number(level);
+      if (isNaN(v) || v < 0 || v > 100) throw new Error("Volume must be 0–100");
+
+      for (const m of group.members) {
+        try {
+          const dev = mgr.Devices.find((d) => d.Host === m.host);
+          if (dev?.RenderingControlService) {
+            await dev.RenderingControlService.SetVolume({
+              InstanceID: 0,
+              Channel: "Master",
+              DesiredVolume: v,
+            });
+          }
+        } catch (e) {
+          console.warn(`⚠️ Failed to set volume for ${m.name}: ${e.message}`);
+        }
+      }
+
+      res.json({ ok: true, id: groupId, volume: v });
+    } else {
+      // ─── Get average group volume ───
+      const vols = [];
+      for (const m of group.members) {
+        try {
+          const dev = mgr.Devices.find((d) => d.Host === m.host);
+          if (dev?.RenderingControlService) {
+            const v = await dev.RenderingControlService.GetVolume({
+              InstanceID: 0,
+              Channel: "Master",
+            });
+            vols.push(Number(v.CurrentVolume));
+          }
+        } catch {}
+      }
+
+      const avg =
+        vols.length > 0 ? Math.round(vols.reduce((a, b) => a + b, 0) / vols.length) : 0;
+      res.json({ id: groupId, volume: avg });
+    }
+  } catch (err) {
+    console.error("❌ Volume endpoint error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 

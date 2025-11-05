@@ -240,22 +240,16 @@ function renderGroups(groups) {
 
     const img = document.createElement("img");
     img.className = "artwork";
-  //  img.src = g.track.artwork || "/placeholder.jpg";
     img.alt = g.name;
-//    img.onerror = () => { img.src = "/placeholder.jpg"; };
-
-
     if (g.track.artwork && g.track.artwork !== "/placeholder.jpg") {
       img.src = g.track.artwork;
     } else {
-      img.src = "/cache/artwork/spotify-default.jpg"; // or any valid local fallback
+      img.src = "/cache/artwork/spotify-default.jpg";
     }
-
     img.onerror = () => {
       console.warn("Artwork failed for", g.name, "→ using default");
       img.src = "/cache/artwork/spotify-default.jpg";
     };
-
 
     const info = document.createElement("div");
     info.className = "info";
@@ -281,10 +275,13 @@ function renderGroups(groups) {
     /* ───────── CONTROLS ───────── */
     const controls = document.createElement("div");
     controls.className = "controls";
+    const isPlaying = g.status === "playing";
     controls.innerHTML = `
       <div class="button-row">
         <button title="Previous">⏮️</button>
-        <button title="Play/Pause">▶️/⏸️</button>
+        <button title="${isPlaying ? "Pause" : "Play"}" class="toggle-btn">
+          ${isPlaying ? "⏸️" : "▶️"}
+        </button>
         <button title="Next">⏭️</button>
       </div>
       <div class="volume-control">
@@ -292,20 +289,27 @@ function renderGroups(groups) {
         <input type="range" min="0" max="100" value="${g.avgVolume ?? 0}" />
       </div>
     `;
-    const [btnPrev, btnToggle, btnNext] = controls.querySelectorAll("button");
+
+    const btnPrev = controls.querySelector('button[title="Previous"]');
+    const btnNext = controls.querySelector('button[title="Next"]');
+    const btnToggle = controls.querySelector(".toggle-btn");
     const slider = controls.querySelector("input[type=range]");
-    const volIcon = controls.querySelector("#vol-icon");
+    const volIconEl = controls.querySelector("#vol-icon");
 
     btnPrev.onclick = () => sendSonosCommand("previous", g.id);
     btnNext.onclick = () => sendSonosCommand("next", g.id);
-    btnToggle.onclick = () => {
-      const isPlaying = g.status === "playing";
-      sendSonosCommand(isPlaying ? "pause" : "play", g.id);
+    btnToggle.onclick = async () => {
+      const newAction = g.status === "playing" ? "pause" : "play";
+      await sendSonosCommand(newAction, g.id);
+      // Toggle icon immediately for user feedback
+      g.status = newAction === "play" ? "playing" : "stopped";
+      btnToggle.textContent = newAction === "play" ? "⏸️" : "▶️";
+      btnToggle.title = newAction === "play" ? "Pause" : "Play";
     };
 
     slider.oninput = (e) => {
       const level = e.target.value;
-      volIcon.textContent = volumeIcon(level);
+      volIconEl.textContent = volumeIcon(level);
     };
     slider.onchange = (e) => setVolume(g.id, e.target.value);
 
