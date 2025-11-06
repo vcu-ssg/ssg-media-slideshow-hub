@@ -257,54 +257,70 @@ async function buildGroups() {
       }
     }
 
-    // 3️⃣ TuneIn: artwork + metadata from GetMediaInfo
-    if (track.uri?.includes("tunein") || track.uri?.includes("mp3radio")) {
-      try {
-        const res = await fetch(`http://${coord.Host}:1400/MediaRenderer/AVTransport/Control`, {
-          method: "POST",
-          headers: {
-            "SOAPACTION": '"urn:schemas-upnp-org:service:AVTransport:1#GetMediaInfo"',
-            "Content-Type": 'text/xml; charset="utf-8"',
-          },
-          body: `<?xml version="1.0" encoding="utf-8"?>
-            <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
-                        s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
-              <s:Body>
-                <u:GetMediaInfo xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
-                  <InstanceID>0</InstanceID>
-                </u:GetMediaInfo>
-              </s:Body>
-            </s:Envelope>`,
-        });
+// 3️⃣ TuneIn + Sonos aac:// streams — artwork + metadata from GetMediaInfo
+if (
+  track.uri?.includes("tunein") ||
+  track.uri?.includes("mp3radio") ||
+  track.uri?.startsWith("aac://")
+) {
+  try {
+    const res = await fetch(`http://${coord.Host}:1400/MediaRenderer/AVTransport/Control`, {
+      method: "POST",
+      headers: {
+        "SOAPACTION": '"urn:schemas-upnp-org:service:AVTransport:1#GetMediaInfo"',
+        "Content-Type": 'text/xml; charset="utf-8"',
+      },
+      body: `<?xml version="1.0" encoding="utf-8"?>
+        <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
+                    s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+          <s:Body>
+            <u:GetMediaInfo xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+              <InstanceID>0</InstanceID>
+            </u:GetMediaInfo>
+          </s:Body>
+        </s:Envelope>`,
+    });
 
-        const xmlText = await res.text();
-        const p2 = new xml2js.Parser({ explicitArray: false, ignoreAttrs: false });
-        const parsed = await p2.parseStringPromise(xmlText);
+    const xmlText = await res.text();
+    const p2 = new xml2js.Parser({ explicitArray: false, ignoreAttrs: false });
+    const parsed = await p2.parseStringPromise(xmlText);
 
-        let metaContent =
-          parsed?.["s:Envelope"]?.["s:Body"]?.["u:GetMediaInfoResponse"]?.CurrentURIMetaData;
-        if (typeof metaContent === "object") metaContent = metaContent._ || "";
+    let metaContent =
+      parsed?.["s:Envelope"]?.["s:Body"]?.["u:GetMediaInfoResponse"]?.CurrentURIMetaData;
+    if (typeof metaContent === "object") metaContent = metaContent._ || "";
 
-        if (metaContent && metaContent.includes("<DIDL-Lite")) {
-          const inner = await p2.parseStringPromise(metaContent);
-          const item = inner?.["DIDL-Lite"]?.item || {};
+    if (metaContent && metaContent.includes("<DIDL-Lite")) {
+      const inner = await p2.parseStringPromise(metaContent);
+      const item = inner?.["DIDL-Lite"]?.item || {};
 
-          const artUri =
-            item["upnp:albumArtURI"] || inner?.["DIDL-Lite"]?.["upnp:albumArtURI"];
-          if (artUri && (!track.artwork || track.artwork.includes("tunein-default"))) {
-            const clean = artUri.replace(/&amp;/g, "&").trim();
-            track.artwork = clean;
-          }
+      let artUri =
+        item["upnp:albumArtURI"] ||
+        inner?.["DIDL-Lite"]?.["upnp:albumArtURI"] ||
+        null;
 
-          // Add title/artist/album if missing
-          track.title ||= item["dc:title"] || track.title;
-          track.artist ||= item["dc:creator"] || "Live Stream";
-          track.album ||= track.album || "TuneIn Radio";
-        }
-      } catch (e) {
-        console.warn(`⚠️ TuneIn metadata extraction failed: ${e.message}`);
+      // ✅ Handle relative or encoded art URIs
+      if (artUri) {
+        artUri = artUri.replace(/&amp;/g, "&").trim();
+        if (!/^https?:\/\//i.test(artUri))
+          artUri = `http://${coord.Host}:1400${artUri}`;
+        if (!track.artwork || track.artwork.includes("tunein-default"))
+          track.artwork = artUri;
+      } else if (track.uri?.startsWith("aac://")) {
+        // ✅ Fallback: build /getaa URL manually
+        track.artwork = `http://${coord.Host}:1400/getaa?s=1&u=${encodeURIComponent(
+          track.uri
+        )}`;
       }
+
+      // ✅ Fill in metadata
+      track.title ||= item["dc:title"] || track.title;
+      track.artist ||= item["dc:creator"] || "Live Stream";
+      track.album ||= track.album || "TuneIn Radio";
     }
+  } catch (e) {
+    console.warn(`⚠️ Stream metadata extraction failed: ${e.message}`);
+  }
+}
 
     // ── Final normalize ──
     track.source = track.uri.includes("spotify")
