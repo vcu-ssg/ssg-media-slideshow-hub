@@ -110,7 +110,16 @@ slides:
     type: youtube
     video_id: "mSX3OyW9Rao"
     duration: 30
-    
+
+
+  - id: yule_tube_1
+    type: youtube
+    video_id: "p6I0WytyPIY"
+    duration:  3600
+    title: "Youtube yuletide 1"
+
+
+
   - id: james_river_flyover
     type: youtube
     video_id: "ufX8tv6P6Wg"
@@ -242,4 +251,5 @@ clients:
     include: [ house_mux_2x2 ]
 
   canakit-metal-pi5:
-    include: [ richmond_current_weather, fireplace_30, pause_10 ] 
+    include: [  yule_tube_1 ]
+
