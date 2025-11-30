@@ -272,5 +272,12 @@ clients:
   canakit-metal-pi5:
     include: [  yule_tube_1 ]
 
-  movie:
+  movie1:
     include: [ kick_six ]
+
+  movie2:
+    include: [ christmas_movie_1 ]
+
+  movie3:
+    include: [ auburn_football_1 ]
+
