@@ -38,7 +38,15 @@ iframe{
 <body>
 <div id="slideshow"></div>
 <script>
-async function loadShow(){const r=await fetch("/api/slideshow");const j=await r.json();return j.slides||[];}
+async function loadShow(){
+  const params = new URLSearchParams(window.location.search);
+  const clientHost = params.get("client-host") || "";
+
+  const r = await fetch(`/api/slideshow?client-host=${encodeURIComponent(clientHost)}`);
+  const j = await r.json();
+  return j.slides || [];
+}
+
 function parseAlign(a){if(!a)return{x:"center",y:"center"};const p=a.trim().split(/\s+/);return{x:p[0]||"center",y:p[1]||"center"};}
 function applyEffect(img,effect,dur){const d=(dur||5)*1000;if(effect==="kenburns-zoom-in")img.animate([{transform:"scale(1)"},{transform:"scale(1.15)"}],{duration:d,fill:"forwards",easing:"ease-in-out"});else if(effect==="kenburns-zoom-out")img.animate([{transform:"scale(1.15)"},{transform:"scale(1)"}],{duration:d,fill:"forwards",easing:"ease-in-out"});}
 

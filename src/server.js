@@ -72,6 +72,14 @@ let config = {};
 try {
   const text = fs.readFileSync(CONFIG_PATH, "utf8");
   config = yaml.load(text);
+
+  config.clients = Object.fromEntries(
+    Object.entries(config.clients || {}).map(([host, val]) => [
+      host.toLowerCase(),
+      val
+    ])
+  );
+
   if (!config.default) config.default = { include: ["*.JPG", "*.jpg", "*.png"] };
   if (!config.clients) config.clients = {};
   log(`✅ Loaded config.yaml from ${CONFIG_PATH}`);
@@ -237,6 +245,18 @@ async function buildSlideshow(clientId) {
       continue;
     }
 
+    // --- PAUSE (blank screen) ---
+    if (slide.type === "pause") {
+      expanded.push({
+        id,
+        type: "pause",
+        duration: slide.duration || 1,
+        effect: "none",
+        title: slide.title || "",
+      });
+      continue;
+    }
+
     // --- Multi-frame sequence ---
     if (slide.file?.includes("*")) {
       const frames = await prepareFrames(slide.file);
@@ -320,10 +340,37 @@ async function buildSlideshow(clientId) {
 // ------------------------------------------------------------
 // 📡 API: slideshow
 // ------------------------------------------------------------
-app.get("/api/slideshow", async (req, res) => {
+app.get("/api/slideshowxxx", async (req, res) => {
   try {
     const slides = await buildSlideshow(CLIENT_ID);
     res.json({ slides });
+  } catch (err) {
+    console.error("❌ Error building slideshow:", err);
+    res.status(500).json({ error: "Error building slideshow" });
+  }
+});
+
+
+app.get("/api/slideshow", async (req, res) => {
+  try {
+    // Normalize incoming host
+    let clientHost = (req.query["client-host"] || "")
+      .trim()
+      .toLowerCase();
+
+    // Validate against known hosts
+    if (!clientHost || !config.clients[clientHost]) {
+      console.log(`→ Host '${clientHost}' not recognized. Using 'default'.`);
+      clientHost = "default";
+    } else {
+      console.log(`→ Using client-host '${clientHost}'`);
+    }
+
+    // Call buildSlideshow exactly as designed
+    const slides = await buildSlideshow(clientHost);
+
+    res.json({ slides });
+
   } catch (err) {
     console.error("❌ Error building slideshow:", err);
     res.status(500).json({ error: "Error building slideshow" });

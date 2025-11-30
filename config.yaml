@@ -64,19 +64,16 @@ slides:
     duration: 10
 
   - id: pause_2
-    file: ""
-    title: ""
-    effect: none
+    type: pause
     duration: 2    
 
   - id: pause_1
+    type: pause
     duration: 1
 
 
   - id: pause_10
-    file: ""
-    title: ""
-    effect: none
+    type: pause
     duration: 10
 
 
@@ -109,7 +106,11 @@ slides:
     duration: 30
     title: "JRA’s Jim Buzzard River Education Center"
 
-
+  - id: fireplace_30
+    type: youtube
+    video_id: "mSX3OyW9Rao"
+    duration: 30
+    
   - id: james_river_flyover
     type: youtube
     video_id: "ufX8tv6P6Wg"
@@ -205,7 +206,7 @@ slides:
 
 # --- Default playlist shared by all kiosks ---
 default:
-  include: [kitchen_before, kitchen_during, bath_during, bath_after ]
+  include: [ richmond_current_weather ]
 
 # --- Client-specific playlists (subsets or overrides) ---
 
@@ -236,3 +237,9 @@ clients:
 
   EGR-JL-RAK1-SRV:
     include: [ mux_2x2_2 ]
+
+  doveshell:
+    include: [ house_mux_2x2 ]
+
+  canakit-metal-pi5:
+    include: [ richmond_current_weather, fireplace_30, pause_10 ] 
