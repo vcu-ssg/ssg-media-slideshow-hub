@@ -118,6 +118,18 @@ slides:
     duration:  3600
     title: "Youtube yuletide 1"
 
+  - id: auburn_football_1
+    type: youtube
+    video_id: "AniVPfQ74Ok"
+    duration: infinite
+    title: "Auburn vs Florida State - Full Game"
+
+
+  - id: christmas_movie_1
+    type: movie
+    folder: "A 90's Christmas (2024)"
+    duration: "infinite"
+    title: "Hallmark - A 90's Christmas"
 
 
   - id: james_river_flyover
@@ -125,6 +137,13 @@ slides:
     video_id: "ufX8tv6P6Wg"
     duration: 180
     title: "Drone footage over the James River"
+
+
+  - id: kick_six
+    type: youtube
+    video_id: "vR7s2m5Z5GA"
+    duration: infinite
+    title: "THE kick 6"
 
 
   - id: front_porch_camera
@@ -253,3 +272,5 @@ clients:
   canakit-metal-pi5:
     include: [  yule_tube_1 ]
 
+  movie:
+    include: [ kick_six ]

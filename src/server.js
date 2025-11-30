@@ -12,15 +12,17 @@ import { fileURLToPath } from "url";
 import { minimatch } from "minimatch";
 import { glob } from "glob";
 import sharp from "sharp";
+
 import { createWeatherRouter } from "./weatherapi.js";
 import { listGoogleImages } from "./googleimages.js";
 import { listOneDriveImages } from "./onedriveimages.js";
 import { createMeteobridgeRouter } from "./meteobridge.js";
 import { createWunderRouter } from "./wunderapi.js";
 import { createVisualCrossingRouter } from "./visualcrossingapi.js";
-
 import { createSonosRouter } from "./sonosplayer.js";
+import { createMovieRouter } from "./movierouter.js";
 
+import { movieRegistry } from "./registry.js";
 
 // ------------------------------------------------------------
 // 🧭 Environment setup
@@ -39,6 +41,8 @@ const PORT = process.env.KIOSK_PORT || process.env.PORT || 3000;
 const CLIENT_ID = process.env.CLIENT_ID || os.hostname() || "default-client";
 const OPENWEATHER_KEY =
   process.env.KIOSK_OPENWEATHER_KEY || process.env.OPENWEATHER_KEY || "";
+
+const MOVIE_ROOT = "/mnt/dockermedia/media/movies";
 
 // ------------------------------------------------------------
 // 📂 Directory setup (resolve relative to project root)
@@ -63,6 +67,27 @@ app.use(morgan("combined", { stream: accessStream }));
 function log(msg) {
   const ts = new Date().toISOString();
   fs.appendFileSync(LOG_FILE, `${ts} | ${msg}\n`);
+}
+
+//
+// Helpers
+//
+
+function resolveMovieFile(folderName) {
+  const folderPath = path.join(MOVIE_ROOT, folderName);
+
+  if (!fs.existsSync(folderPath)) {
+    throw new Error(`Movie folder not found: ${folderPath}`);
+  }
+
+  const files = fs.readdirSync(folderPath);
+  const mkv = files.find(f => f.toLowerCase().endsWith(".mkv"));
+
+  if (!mkv) {
+    throw new Error(`No MKV found in folder: ${folderPath}`);
+  }
+
+  return path.join(folderPath, mkv);
 }
 
 // ------------------------------------------------------------
@@ -257,6 +282,25 @@ async function buildSlideshow(clientId) {
       continue;
     }
 
+    // -- MOVIE ---
+
+    if (slide.type === "movie") {
+      const moviePath = resolveMovieFile(slide.folder);
+
+      // Register movie path for runtime streaming
+      movieRegistry[id] = moviePath;
+
+      expanded.push({
+        id,
+        type: "video",                    // front-end will use <video>
+        file: `/api/movie/id/${id}`,         // backend streaming endpoint
+        duration: slide.duration || "infinite",
+        title: slide.title || "",
+      });
+
+      continue;
+    }
+
     // --- Multi-frame sequence ---
     if (slide.file?.includes("*")) {
       const frames = await prepareFrames(slide.file);
@@ -447,6 +491,12 @@ app.use(
 
 app.use("/api/sonos", createSonosRouter(express, log));
 
+
+// ------------------------------------------------------------
+// 🎬 Movie streaming route
+// ------------------------------------------------------------
+
+app.use("/api/movie", createMovieRouter(express, log));
 
 // ------------------------------------------------------------
 // 🚀 Start server

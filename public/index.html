@@ -84,6 +84,41 @@ async function start(){
       return;
     }
 
+    // ---------- VIDEO (local movie or remote MP4/MKV) ----------
+    if (type === "video" && slide.file) {
+      const vid = document.createElement("video");
+
+      vid.src = slide.file;               // e.g. /api/movie/id/christmas_movie
+      vid.autoplay = true;                // auto start
+      vid.muted = true;                   // required for autoplay
+      vid.playsInline = true;             // required for mobile / Pi kiosk modes
+      vid.controls = false;               // kiosk: no controls
+      vid.loop = false;                   // loop? backend can pass slide.loop if needed
+      vid.style.width = "100%";
+      vid.style.height = "100%";
+      vid.style.objectFit = "contain";    // or "cover" if you want full bleed
+      vid.style.background = "black";
+
+      target.appendChild(vid);
+
+      // Handle "infinite" slides (no timeout)
+      if (onDone && slide.duration !== "infinite") {
+        const ms = (slide.duration || 30) * 1000;
+        setTimeout(onDone, ms);
+      }
+
+      // Auto-advance when movie ends (if not infinite)
+      if (onDone && slide.duration !== "infinite") {
+        vid.addEventListener("ended", () => {
+          onDone();
+        });
+      }
+
+      return;
+    }
+
+
+
     // ---------- GOOGLE / ONE DRIVE ----------
     if((type==="google-drive"||type==="one-drive")&&slide.images?.length){
       // ---- COLLAGE EFFECT ----
