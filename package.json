@@ -1,8 +1,8 @@
 {
-  "name": "ssg-kiosk-photo-player",
-  "version": "1.0.0",
+  "name": "ssg-display-hub",
+  "version": "2.0.0",
   "type": "module",
-  "description": "Simple kiosk player",
+  "description": "Media player and display orchestrator",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
