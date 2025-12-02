@@ -1,35 +1,35 @@
 services:
-  photo-kiosk:
-    image: ssg-kiosk-photo-player:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: photo-kiosk
+  media-slideshow-hub:
+    image: ssg-media-slideshow-hub:latest
+    container_name: media-slideshow-hub
     restart: unless-stopped
     network_mode: host
-    ports:
-      - "${KIOSK_PORT:-3000}:3000"
 
-    # --- Mount app directories ---
+    ports:
+      - "${DISPLAY_HUB_PORT:-3000}:3000"
+
     volumes:
-      - ./media/photos:/app/photos
+      - ./media/photos:/app/media/photos
+      - ./media/videos:/app/media/videos
+      - ./media/movies:/app/media/movies
+      - ./media/tv:/app/media/tv
+      - ./runtime/logs:/app/runtime/logs
+      - ./runtime/cache:/app/runtime/cache
+
+      - ./database/config.yaml:/app/database/config.yaml:ro
       - ./public:/app/public
       - ./pages:/app/pages
-      - ./config.yaml:/app/config.yaml:ro
-      - ./logs:/app/logs
 
-      # --- Mount your Google credentials file securely (read-only) ---
+      # Credentials for Google API
       - ${GOOGLE_CREDENTIALS_FILE:-/home/john/.gsecrets/gsheets-credentials.json}:/run/secrets/gsheets-credentials.json:ro
 
-    # --- Environment variables ---
     env_file:
-      - ~/.env   # your personal/global settings (host values)
-      - .env     # project/container settings (container paths)
+      - ~/.env
+      - .env
 
     environment:
-      - NODE_ENV=${KIOSK_NODE_ENV}
-      - PORT=${KIOSK_PORT}
-      - OPENWEATHER_KEY=${KIOSK_OPENWEATHER_KEY}
+      - NODE_ENV=production
+      - PORT=${DISPLAY_HUB_PORT:-3000}
       - CLIENT_ID=${CLIENT_ID}
       - ENV_PATH=/app/.env
       - GOOGLE_CREDENTIALS_PATH=/run/secrets/gsheets-credentials.json
@@ -43,8 +43,8 @@ services:
     container_name: mediamtx
     restart: unless-stopped
     ports:
-      - "8554:8554"    # RTSP
-      - "8888:8888"    # HLS
+      - "8554:8554"
+      - "8888:8888"
     volumes:
       - ./config/mediamtx.yml:/mediamtx.yml:ro
     labels:

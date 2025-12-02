@@ -1,12 +1,13 @@
 {
-  "name": "ssg-display-hub",
+  "name": "ssg-media-slideshow-hub",
   "version": "2.0.0",
   "type": "module",
-  "description": "Media player and display orchestrator",
-  "main": "index.js",
+  "description": "Media-enabled slideshow engine, backend API, Chromecast receiver, CLI controller, and multi-display orchestration hub.",
+  "homepage": "https://github.com/vcu-ssg/ssg-media-slideshow-hub#readme",
+  "main": "src/backend/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/server.js"
+    "start": "node src/backend/server.js",
+    "dev": "NODE_ENV=development node src/backend/server.js"
   },
   "repository": {
     "type": "git",
@@ -18,7 +19,6 @@
   "bugs": {
     "url": "https://github.com/vcu-ssg/ssg-kiosk-photo-player/issues"
   },
-  "homepage": "https://github.com/vcu-ssg/ssg-kiosk-photo-player#readme",
   "dependencies": {
     "@svrooij/sonos": "^2.5.0",
     "dotenv": "^17.2.3",
