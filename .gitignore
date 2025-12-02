@@ -61,6 +61,9 @@ media/tv/**
 
 # 3. AND allow a README for photos if present
 !media/photos/README.md
+!media/videos/README.md
+!media/movies/README.md
+!media/tv/README.md
 
 # 4. ***SPECIAL CASE: DO NOT IGNORE media/samples***
 #    These demo files allow the project to run out-of-the-box.
