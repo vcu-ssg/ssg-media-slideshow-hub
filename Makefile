@@ -63,6 +63,13 @@ dev:
 clean:
 	rm -rf node_modules
 	rm -f npm-debug.log
+	rm -rf media/cache        # all generated images
+	rm -rf media/logs         # runtime logs
+	rm -rf public/hls         # HLS output if mediamtx writes here
+	rm -rf src/backend/scripts/precache-output   # if generated
+	rm -f decoded-topology.xml
+	rm -f parsed-topology.json
+
 
 # -----------------------------
 # Docker targets

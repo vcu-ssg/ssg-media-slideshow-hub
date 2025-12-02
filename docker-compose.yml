@@ -12,7 +12,7 @@ services:
 
     # --- Mount app directories ---
     volumes:
-      - ./photos:/app/photos
+      - ./media/photos:/app/photos
       - ./public:/app/public
       - ./pages:/app/pages
       - ./config.yaml:/app/config.yaml:ro
@@ -46,7 +46,7 @@ services:
       - "8554:8554"    # RTSP
       - "8888:8888"    # HLS
     volumes:
-      - ./mediamtx.yml:/mediamtx.yml:ro
+      - ./config/mediamtx.yml:/mediamtx.yml:ro
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
 

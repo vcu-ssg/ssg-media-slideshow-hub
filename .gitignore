@@ -1,9 +1,94 @@
+# ------------------------------------------------------------
+# Node.js build artifacts
+# ------------------------------------------------------------
 node_modules/
-npm-debug.log
-.DS_Store
-cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment files
 .env
+.env.*
+!.env.example
 
+# ------------------------------------------------------------
+# Runtime (ephemeral) data
+# ------------------------------------------------------------
+runtime/cache/**
+runtime/logs/**
+runtime/tmp/**
+runtime/*.pid
 
-logs/*.log
-!logs/.gitkeep
+# Allow keeping empty dirs with gitkeep
+!runtime/cache/.gitkeep
+!runtime/logs/.gitkeep
+!runtime/tmp/.gitkeep
+
+# ------------------------------------------------------------
+# Temporary files
+# ------------------------------------------------------------
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ------------------------------------------------------------
+# Media (large external assets should NOT be committed)
+# ------------------------------------------------------------
+# 1. Completely IGNORE real user media from NFS/QNAP/etc.
+media/photos/**
+media/videos/**
+media/movies/**
+media/tv/**
+
+# 2. EXCEPT: keep the directory structure
+!media/photos/.gitkeep
+!media/videos/.gitkeep
+!media/movies/.gitkeep
+!media/tv/.gitkeep
+
+# 3. AND allow a README for photos if present
+!media/photos/README.md
+
+# 4. ***SPECIAL CASE: DO NOT IGNORE media/samples***
+#    These demo files allow the project to run out-of-the-box.
+!media/samples/**
+!media/samples/
+
+# Also keep a .gitkeep inside samples (optional)
+!media/samples/.gitkeep
+
+# ------------------------------------------------------------
+# Build / cache artifacts from tools
+# ------------------------------------------------------------
+.cache/
+.eslintcache
+.parcel-cache/
+
+# VSCode (except settings)
+.vscode/*
+!.vscode/settings.json
+
+# ------------------------------------------------------------
+# Docker / container artifacts
+# ------------------------------------------------------------
+docker-data/
+docker-compose.override.yml
+
+# ------------------------------------------------------------
+# Logs (explicit)
+# ------------------------------------------------------------
+*.log
+logs/

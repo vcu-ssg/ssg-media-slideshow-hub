@@ -1,0 +1,12 @@
+logLevel: info
+rtsp: yes
+hls: yes
+rtmp: no
+webrtc: no
+srt: no
+
+paths:
+  frontporch:
+    source: rtsp://192.168.100.1:7447/QWY2Jjt8Be0PEMBo
+    rtspTransport: tcp
+    sourceOnDemand: yes

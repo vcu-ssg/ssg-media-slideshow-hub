@@ -1,0 +1,283 @@
+# config.yaml
+slides:
+  # --- Master library of reusable slides ---
+  - id: kitchen_before
+    file: "kitchen_before.JPG"
+    #title: "Kitchen before"
+    effect: kenburns-zoom-in
+    duration: 10
+
+  - id: kitchen_during
+    file: "kitchen_during/*.JPG"
+    #title: "Kitchen during ..."
+    effect: cut
+    fps: 0.5
+
+  - id: kitchen_after
+    file: "kitchen_after.JPG"
+    #title: "Kitchen after"
+    effect: kenburns-zoom-out
+    duration: 10
+
+  - id: bath_before
+    file: "bath_before.JPG"
+    #title: "Bath before "
+    effect: kenburns-zoom-in
+    duration: 10
+
+  - id: bath_during
+    file: "bath_during/*.JPG"
+    #title: "Bath during ..."
+    effect: fade
+    duration: 15
+
+  - id: kitchen_animation
+    file: "kitchen_during/*.JPG"     # glob pattern expands to multiple frames
+    title: "Kitchen Time-Lapse"
+    effect: animate-smooth           # smooth transition between frames
+    #duration: 8                      # total time (seconds)
+    fps: 3                          # frame rate (frames per second)    
+    repeat: 3
+
+  - id: bath_after
+    file: "bath_after.JPG"
+    #title: "Bath after ..."
+    effect: kenburns-zoom-out
+    duration: 10
+
+  - id: powder_before
+    file: "powder_before.JPG"
+    #title: "Powder room before "
+    effect: kenburns-zoom-in
+    duration: 10
+
+  - id: powder_during
+    file: "powder_during/*.JPG"
+    #title: "Powder room during ..."
+    effect: fade
+    duration: 3
+
+  - id: powder_after
+    file: "powder_after.JPG"
+    #title: "Powder room after ..."
+    effect: kenburns-zoom-out
+    duration: 10
+
+  - id: pause_2
+    type: pause
+    duration: 2    
+
+  - id: pause_1
+    type: pause
+    duration: 1
+
+
+  - id: pause_10
+    type: pause
+    duration: 10
+
+
+  - id: richmond_current_weather
+    type: html
+    url: "/pages/weather.html?city=Richmond,VA"
+    duration: 15
+
+  - id: richmond_current_weather_inf
+    type: html
+    url: "/pages/weather.html?city=Richmond,VA"
+    duration: infinite
+
+
+  - id: richmond_current_conditions
+    type: html
+    url: "/pages/current_conditions.html?city=Richmond,VA"
+    duration: 15
+
+
+  - id: james_river_water_level
+    type: html
+    url: "https://water.noaa.gov/gauges/rmdv2"
+    title: 
+    duration: 10
+
+  - id: river_center_live_video
+    type: youtube
+    video_id: "erBoOFKTH4E"
+    duration: 30
+    title: "JRA’s Jim Buzzard River Education Center"
+
+  - id: fireplace_30
+    type: youtube
+    video_id: "mSX3OyW9Rao"
+    duration: 30
+
+
+  - id: yule_tube_1
+    type: youtube
+    video_id: "p6I0WytyPIY"
+    duration:  3600
+    title: "Youtube yuletide 1"
+
+  - id: auburn_football_1
+    type: youtube
+    video_id: "AniVPfQ74Ok"
+    duration: infinite
+    title: "Auburn vs Florida State - Full Game"
+
+
+  - id: christmas_movie_1
+    type: movie
+    folder: "A 90's Christmas (2024)"
+    duration: "infinite"
+    title: "Hallmark - A 90's Christmas"
+
+
+  - id: james_river_flyover
+    type: youtube
+    video_id: "ufX8tv6P6Wg"
+    duration: 180
+    title: "Drone footage over the James River"
+
+
+  - id: kick_six
+    type: youtube
+    video_id: "vR7s2m5Z5GA"
+    duration: infinite
+    title: "THE kick 6"
+
+
+  - id: front_porch_camera
+    type: html
+    url: "/pages/frontporch.html"
+    title: "Front Porch Camera"
+    duration: 30
+
+  - id: front_porch_rtsp
+    type: html
+    url: "/pages/front_porch_rtsp.html"
+    duration: 45
+
+  - id: sonos_status
+    type: html
+    url: "/pages/sonos-groups.html"
+    duration: 30
+
+  - id: google_fda_album_2025_05_20
+    type: google-drive
+    folderId: "1xG1hbk-uOIRYjKQmFx12C9KE7VkXH1lx"
+    effect: fade
+    order: random
+    duration: 3
+    title: "Shared Google Drive Photos"    
+
+  - id: onedrive_photos
+    type: one-drive
+    folder: "/Kiosk-Photos"
+    effect: fade
+    order: random
+    duration: 3
+    title: "Onedrive Drive Photos"    
+
+  - id: collage_drive_photos
+    type: google-drive
+    folderId: "1xG1hbk-uOIRYjKQmFx12C9KE7VkXH1lx"
+    effect: collage
+    order: random
+    duration: 90
+    fps: 1.0
+    imageMaxPosition: 0.33   # ±% offset from center
+    imageMinSize: 0.25       # % of parent
+    imageMaxSize: 0.40
+    borderWidth: 5
+    borderColor: "white"
+    background: "black"
+    imageInEffect: cut       # cut | fade | dissolve (more below)
+    imageOutEffect: fade
+
+
+  - id: house_mux_2x2
+    type: mux
+    layout: 2x2
+    duration: infinite
+    title: "Home Renovation Overview"
+    hide_panel_titles: true
+    panels:
+      - slides: [james_river_flyover]
+        panel_duration: 210
+      - slides: [ sonos_status, onedrive_photos, bath_before, bath_during, bath_after, pause_1 ]
+        #panel_duration: 4
+      - slides: [ collage_drive_photos, google_fda_album_2025_05_20 ]
+        #panel_duration: 6
+      - slides: [ front_porch_rtsp, richmond_current_weather,river_center_live_video ]  # empty
+        #panel_duration: infinite
+
+  - id: mux_2x2_2
+    type: mux
+    layout: 2x2
+    duration: infinite
+    title: "Home Renovation Overview"
+    hide_panel_titles: true
+    panels:
+      - slides: [james_river_flyover]
+        panel_duration: 210
+      - slides: [onedrive_photos, bath_before, bath_during, bath_after, pause_1 ]
+        #panel_duration: 4
+      - slides: [ google_fda_album_2025_05_20 ]
+        #panel_duration: 6
+      - slides: [ collage_drive_photos, richmond_current_weather,river_center_live_video ]  # empty
+        #panel_duration: infinite
+
+
+
+#https://youtu.be/erBoOFKTH4E
+
+
+# --- Default playlist shared by all kiosks ---
+default:
+  include: [ richmond_current_weather ]
+
+# --- Client-specific playlists (subsets or overrides) ---
+
+clients:
+  Scrollsaw:
+    #include: [kitchen_before, kitchen_during, kitchen_after, pause_2, kitchen_animation, pause_2, powder_before, powder_during, powder_after, pause_2, bath_before, bath_during, bath_after, pause_2 ]
+    #include: [kitchen_before, kitchen_during, kitchen_after, pause_2, powder_before, powder_during, powder_after, pause_2, bath_before, bath_during, bath_after, pause_2 ]
+    #include: [river_center_live_video, james_river_flyover]
+    #include: [powder_before, powder_during, powder_after, pause_2]
+    #include: [bath_before,bath_during,bath_after,pause_1]
+    #include: [kitchen_before, kitchen_during, kitchen_after, pause_1 ]
+    #include: [richmond_current_weather ]
+    #include: [front_porch_camera]
+    #include: [google_fda_album_2025_05_20]
+    #include: [ richmond_current_conditions ]
+    include: [ house_mux_2x2 ]
+    #include: [ collage_drive_photos ]
+
+  kiosk1.local:
+    include: [kitchen_before, kitchen_during, bath_during, bath_after ]
+
+  pi4office:
+    include: [kitchen_before, kitchen_during, kitchen_after, pause_2, powder_before, powder_during, powder_after, pause_2, bath_before, bath_during, bath_after, pause_2 ]
+
+  EGR-JL-DSK0-SRV:
+    include: [richmond_current_weather_inf]
+    #include: [ mux_2x2_2 ]
+
+  EGR-JL-RAK1-SRV:
+    include: [ mux_2x2_2 ]
+
+  doveshell:
+    include: [ house_mux_2x2 ]
+
+  canakit-metal-pi5:
+    include: [  yule_tube_1 ]
+
+  movie1:
+    include: [ kick_six ]
+
+  movie2:
+    include: [ christmas_movie_1 ]
+
+  movie3:
+    include: [ auburn_football_1 ]
+
