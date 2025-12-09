@@ -125,7 +125,7 @@
         return;
       }
 
-      const API_CURRENT = `/api/weather/current?${query}&units=${units}`;
+      const API_CURRENT = `/api/v1/weather/current?${query}&units=${units}`;
 
       try {
         const res = await fetch(API_CURRENT);

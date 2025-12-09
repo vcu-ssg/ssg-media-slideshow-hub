@@ -82,18 +82,18 @@ slides:
 
   - id: richmond_current_weather
     type: html
-    url: "/pages/weather.html?city=Richmond,VA"
+    url: "/pages/weather.html?city=Richmond,VA,USA"
     duration: 15
 
   - id: richmond_current_weather_inf
     type: html
-    url: "/pages/weather.html?city=Richmond,VA"
+    url: "/pages/weather.html?city=Richmond,VA,USA"
     duration: infinite
 
 
   - id: richmond_current_conditions
     type: html
-    url: "/pages/current_conditions.html?city=Richmond,VA"
+    url: "/pages/current_conditions.html?city=Richmond,VA,USA"
     duration: 15
 
 

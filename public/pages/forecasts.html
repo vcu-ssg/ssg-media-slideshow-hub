@@ -106,8 +106,8 @@
         return;
       }
 
-      const API_CURRENT = `/api/weather/current?${query}&units=${units}`;
-      const API_FORECAST = `/api/weather?${query}&units=${units}`;
+      const API_CURRENT = `/api/v1/weather/current?${query}&units=${units}`;
+      const API_FORECAST = `/api/v1/weather/forecast?${query}&units=${units}`;
 
       try {
         const [currRes, forecastRes] = await Promise.all([

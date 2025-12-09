@@ -118,7 +118,7 @@
 
     async function getHourly() {
       try {
-        const res = await fetch(`/api/visualcrossing/hourly?${query}&units=${units}`);
+        const res = await fetch(`/api/v1/visualcrossing/hourly?${query}&units=${units}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
