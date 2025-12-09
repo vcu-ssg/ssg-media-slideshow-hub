@@ -115,9 +115,10 @@ export async function buildSlideshowForClient(slideshow, config) {
       // MOVIE
       // --------------------------------------------------------
       case "movie": {
-        expanded.push(await expandMovie(slide));
-        return;
-      }
+          const m = await expandMovie(slide);
+          expanded.push(m);
+          return;
+      }      
 
       // --------------------------------------------------------
       // MUX — recursively add panel slides
@@ -153,9 +154,84 @@ export async function buildSlideshowForClient(slideshow, config) {
     }
   };
 
+  async function addSlideInstance(slideId) {
+    const raw = findMaster(slideId);
+    if (!raw) return;
+
+    let slide = normalizeSlide(raw);
+    slide = applyClientOverrides(slide, clientCfg);
+
+    const type = (slide.type || "").toLowerCase();
+
+    switch (type) {
+
+      case "movie": {
+        const m = await expandMovie(slide);
+        expanded.push(m);
+        return;
+      }
+
+      case "pause":
+        expanded.push({
+          id: slide.id,
+          type: "pause",
+          duration: slide.duration || 1,
+        });
+        return;
+
+      case "html":
+        expanded.push(expandHtml(slide));
+        return;
+
+      case "youtube":
+        expanded.push(expandYouTube(slide));
+        return;
+
+      case "multi-frame":
+      case "image":
+      case "remote-image":
+        expanded.push({ ...slide });
+        return;
+
+      case "folder": {
+        const list = expandLocalFolder(slide);
+        replaceOrAppend(expanded, slide.id, list);
+        return;
+      }
+
+      case "google":
+      case "google-drive": {
+        const list = await expandGoogle(slide);
+        replaceOrAppend(expanded, slide.id, list);
+        return;
+      }
+
+      case "onedrive":
+      case "one-drive": {
+        const list = await expandOneDrive(slide);
+        replaceOrAppend(expanded, slide.id, list);
+        return;
+      }
+
+      case "mux": {
+        expanded.push(slide);
+        const childIds = slide.panels?.flatMap(p => p.slides || []) || [];
+        for (const cid of childIds) {
+          await addSlideOnce(cid);
+        }
+        return;
+      }
+
+      default:
+        expanded.push(slide);
+        return;
+    }
+  }
+
+
   // Expand entry slides
   for (const id of entryIds) {
-    await addSlideOnce(id);
+    await addSlideInstance(id);
   }
 
   // Inject Google / OneDrive images into MUX panels

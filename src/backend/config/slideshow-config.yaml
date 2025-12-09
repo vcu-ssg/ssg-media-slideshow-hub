@@ -76,6 +76,9 @@ slides:
     type: pause
     duration: 10
 
+  - id: pause_20
+    type: pause
+    duration: 20
 
   - id: richmond_current_weather
     type: html
@@ -115,7 +118,7 @@ slides:
   - id: yule_tube_1
     type: youtube
     video_id: "p6I0WytyPIY"
-    duration:  3600
+    duration:  14400
     title: "Youtube yuletide 1"
 
   - id: auburn_football_1
@@ -128,7 +131,8 @@ slides:
   - id: christmas_movie_1
     type: movie
     folder: "A 90's Christmas (2024)"
-    duration: "infinite"
+    start: 0
+    duration: 30
     title: "Hallmark - A 90's Christmas"
 
 
@@ -142,7 +146,8 @@ slides:
   - id: kick_six
     type: youtube
     video_id: "vR7s2m5Z5GA"
-    duration: infinite
+    start: 185
+    duration: 33
     title: "THE kick 6"
 
 
@@ -233,10 +238,12 @@ slideshows:
 # --- Default playlist shared by all kiosks ---
   default:
     #include: [ christmas_movie_1  ]
-    include: [ mux_2x2_2 ]
+    #include: [ mux_2x2_2 ]
     # include: [ google_fda_album_2025_05_20 ]
+    #include: [ collage_drive_photos ]
+    include: [ sonos_status ]
 
-  Scrollsaw:
+  scrollsaw:
     #include: [kitchen_before, kitchen_during, kitchen_after, pause_2, kitchen_animation, pause_2, powder_before, powder_during, powder_after, pause_2, bath_before, bath_during, bath_after, pause_2 ]
     #include: [kitchen_before, kitchen_during, kitchen_after, pause_2, powder_before, powder_during, powder_after, pause_2, bath_before, bath_during, bath_after, pause_2 ]
     #include: [river_center_live_video, james_river_flyover]
@@ -247,8 +254,8 @@ slideshows:
     #include: [front_porch_camera]
     #include: [google_fda_album_2025_05_20]
     #include: [ richmond_current_conditions ]
-    include: [ house_mux_2x2 ]
-    #include: [ collage_drive_photos ]
+    #include: [ house_mux_2x2 ]
+    include: [ collage_drive_photos ]
 
   kiosk1.local:
     include: [kitchen_before, kitchen_during, bath_during, bath_after ]
@@ -278,3 +285,11 @@ slideshows:
   movie3:
     include: [ auburn_football_1 ]
 
+  tv-room:
+    include: [ yule_tube_1 ]
+
+  dining:
+    include: [ kick_six, pause_20, christmas_movie_1, pause_20 ]
+
+  kitchen:
+    include: [kitchen_before, kitchen_during, kitchen_after, pause_2, powder_before, powder_during, powder_after, pause_2, bath_before, bath_during, bath_after, pause_2 ]

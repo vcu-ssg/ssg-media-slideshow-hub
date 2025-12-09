@@ -27,7 +27,7 @@ router.get("/", (req, res) => {
 
     const frames = files.map(abs => {
       const rel = abs.replace(PHOTOS_DIR, "").replace(/^[\\/]/, "");
-      return `/photos/${rel}`;
+      return `/media/photos/${rel}`;
     });
 
     res.json({ frames });

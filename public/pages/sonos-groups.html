@@ -178,7 +178,7 @@ html, body {
 <script>
 async function fetchGroups() {
   try {
-    const res = await fetch("/api/sonos/groups");
+    const res = await fetch("/api/v1/sonos/groups");
     if (!res.ok) throw new Error(res.statusText);
     const data = await res.json();
     data.groups.sort((a, b) => a.name.localeCompare(b.name));
@@ -198,7 +198,7 @@ function volumeIcon(vol) {
 
 async function sendSonosCommand(action, id) {
   try {
-    const res = await fetch(`/api/sonos/${action}`, {
+    const res = await fetch(`/api/v1/sonos/${action}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
@@ -213,7 +213,7 @@ async function sendSonosCommand(action, id) {
 
 async function setVolume(id, level) {
   try {
-    const res = await fetch(`/api/sonos/volume`, {
+    const res = await fetch(`/api/v1/sonos/volume`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, level }),

@@ -3,11 +3,11 @@
 // ------------------------------------------------------------
 import fs from "fs";
 import path from "path";
-import { MEDIA_DIR } from "../../../shared/paths.js";
+import { MOVIES_DIR } from "../../../shared/paths.js";
 import { movieRegistry } from "./movie-registry.js";
 
 // Movies live at: <project>/media/movies
-const MOVIE_ROOT = path.join(MEDIA_DIR, "movies");
+const MOVIE_ROOT = MOVIES_DIR
 
 export function listMovieFolders() {
   if (!fs.existsSync(MOVIE_ROOT)) return [];

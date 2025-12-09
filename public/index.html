@@ -15,14 +15,15 @@ html,body{margin:0;height:100%;background:black;overflow:hidden;}
   background:black;
   opacity:0;
   transition:opacity .7s ease-in-out;
-  pointer-events:none;              /* ← Prevent hidden slides from blocking input */
+  pointer-events:none;
 }
-.slide.active{pointer-events:auto;} /* ← Allow interaction on visible slide */
+.slide.active{pointer-events:auto;}
 
 .mux-grid{display:grid;width:100%;height:100%;background:black;gap:2px;}
 .mux-cell{position:relative;overflow:hidden;background:black;}
 .mux-inner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;will-change:transform;}
 .mux-inner img{max-width:100%;max-height:100%;object-fit:contain;display:block;}
+
 iframe{
   position:absolute;
   inset:0;
@@ -30,21 +31,24 @@ iframe{
   height:100%;
   border:none;
   z-index:1;
-  pointer-events:auto;              /* ← Ensure iframe can receive mouse/touch */
+  pointer-events:auto;
   background:black;
 }
 </style>
 </head>
 <body>
 <div id="slideshow"></div>
-<script>
 
+<script>
+/* ------------------------------------------------------------
+   Load slideshow from backend
+------------------------------------------------------------ */
 async function loadShow() {
   const params = new URLSearchParams(window.location.search);
   const slideshow = params.get("slideshow") || "";
 
   let url = "/api/slideshow";
-  if (slideshow && slideshow.trim() !== "") {
+  if (slideshow.trim() !== "") {
     url += `?slideshow=${encodeURIComponent(slideshow)}`;
   }
 
@@ -53,93 +57,293 @@ async function loadShow() {
   return j.slides || [];
 }
 
-function parseAlign(a){if(!a)return{x:"center",y:"center"};const p=a.trim().split(/\s+/);return{x:p[0]||"center",y:p[1]||"center"};}
-function applyEffect(img,effect,dur){const d=(dur||5)*1000;if(effect==="kenburns-zoom-in")img.animate([{transform:"scale(1)"},{transform:"scale(1.15)"}],{duration:d,fill:"forwards",easing:"ease-in-out"});else if(effect==="kenburns-zoom-out")img.animate([{transform:"scale(1.15)"},{transform:"scale(1)"}],{duration:d,fill:"forwards",easing:"ease-in-out"});}
+/* ------------------------------------------------------------
+   Helpers
+------------------------------------------------------------ */
+function parseAlign(a){
+  if(!a) return {x:"center",y:"center"};
+  const p=a.trim().split(/\s+/);
+  return {x:p[0]||"center",y:p[1]||"center"};
+}
+
+function applyEffect(img,effect,dur){
+  const d=(dur||5)*1000;
+  if(effect==="kenburns-zoom-in")
+    img.animate([{transform:"scale(1)"},{transform:"scale(1.15)"}],
+      {duration:d,fill:"forwards",easing:"ease-in-out"});
+  else if(effect==="kenburns-zoom-out")
+    img.animate([{transform:"scale(1.15)"},{transform:"scale(1)"}],
+      {duration:d,fill:"forwards",easing:"ease-in-out"});
+}
 
 function playFrames(img,frames,fps,repeat,duration,effect,onDone){
-  if(!frames?.length)return onDone?.();
-  const loops=repeat??1,total=frames.length*loops;
-  const dur=duration>0?duration*1000:(fps>0?(total/fps)*1000:total*500);
-  const delay=dur/total;let i=0;
-  const step=()=>{img.src=frames[i%frames.length];i++;i<total?setTimeout(step,delay):setTimeout(()=>onDone?.(),delay);}
+  if(!frames?.length) return onDone?.();
+  const loops=repeat??1;
+  const total=frames.length*loops;
+  const dur=(duration>0?duration*1000:(fps>0?(total/fps)*1000:total*500));
+  const delay=dur/total;
+  let i=0;
+  const step=()=>{
+    img.src=frames[i%frames.length];
+    i++;
+    if(i<total) setTimeout(step,delay);
+    else        setTimeout(()=>onDone?.(),delay);
+  };
   step();
 }
 
-async function start(){
-  const slides=await loadShow();
-  const box=document.getElementById("slideshow");
-  if(!slides.length){box.innerHTML="<h1 style='color:white'>No slides</h1>";return;}
-  let idx=0;
-  const a=document.createElement("div"),b=document.createElement("div");
-  a.className=b.className="slide";box.append(a,b);
+/* ------------------------------------------------------------
+   Collage Renderer (UPGRADED — supports cut/fade/dissolve + params)
+------------------------------------------------------------ */
+function renderCollage(target, slide, onDone) {
+  const rect = target.getBoundingClientRect();
+  if (rect.width < 5 || rect.height < 5) {
+    return requestAnimationFrame(() => renderCollage(target, slide, onDone));
+  }  
+  const {
+    images,
+    duration = 90,
+    fps = 1.0,
+    imageMinSize = 0.25,
+    imageMaxSize = 0.40,
+    imageMaxPosition = 0.33,
+    borderWidth = 4,
+    borderColor = "white",
+    background = "black",
+    imageInEffect = "cut",      // cut | fade | dissolve
+    imageOutEffect = "fade"     // fade (currently only supported out effect)
+  } = slide;
 
-  async function renderSlide(target,slide,all,onDone){
-    target.innerHTML="";
-    const inMux=!!target.closest(".mux-grid");
-    const type=(slide.type||"").toLowerCase();
-    console.log(`▶ renderSlide: ${slide.id||"(no id)"} type=${type} inMux=${inMux}`);
+  target.style.background = background;
 
-    // ---------- YOUTUBE ----------
-    if(type==="youtube"&&slide.video_id){
-      const f=document.createElement("iframe");
-      f.allow="autoplay; fullscreen";
-      f.src=`https://www.youtube.com/embed/${slide.video_id}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1`;
-      f.style.pointerEvents="auto";
-      target.appendChild(f);
-      if(onDone&&slide.duration!=="infinite")setTimeout(onDone,(slide.duration||30)*1000);
+  const W = target.clientWidth;
+  const H = target.clientHeight;
+
+  /* -----------------------------
+     Helper: create image box
+  ----------------------------- */
+  function createImageBox(url) {
+    const box = document.createElement("div");
+    box.style.position = "absolute";
+    box.style.boxSizing = "border-box";
+    box.style.border = `${borderWidth}px solid ${borderColor}`;
+    box.style.borderRadius = "2px";
+    box.style.overflow = "hidden";
+    box.style.opacity = 0;
+
+    // Randomized size
+    const scale = imageMinSize + Math.random() * (imageMaxSize - imageMinSize);
+    const w = W * scale;
+    const h = H * scale;
+
+    // Position jitter
+    const ox = (Math.random()*2 - 1) * imageMaxPosition * W;
+    const oy = (Math.random()*2 - 1) * imageMaxPosition * H;
+
+    box.style.width = `${w}px`;
+    box.style.height = `${h}px`;
+    box.style.left = `${(W - w)/2 + ox}px`;
+    box.style.top  = `${(H - h)/2 + oy}px`;
+
+    // Image element
+    const img = document.createElement("img");
+    img.src = url;
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "cover";
+    box.appendChild(img);
+
+    target.appendChild(box);
+    return box;
+  }
+
+  /* -----------------------------
+     EFFECT HELPERS
+  ----------------------------- */
+  function doInEffect(box) {
+    if (imageInEffect === "cut") {
+      box.style.opacity = 1;
       return;
     }
 
-    // ---------- MOVIE (local movie or remote MP4/MKV) ----------
+    if (imageInEffect === "fade") {
+      box.animate(
+        [{opacity:0},{opacity:1}],
+        {duration:700,fill:"forwards",easing:"ease-out"}
+      );
+      return;
+    }
+
+    if (imageInEffect === "dissolve") {
+      box.animate(
+        [
+          {opacity:0, filter:"blur(8px)"},
+          {opacity:1, filter:"blur(0px)"}
+        ],
+        {duration:900,fill:"forwards",easing:"ease-out"}
+      );
+      return;
+    }
+
+    // default fallback
+    box.style.opacity = 1;
+  }
+
+
+  function doOutEffect(box) {
+    if (imageOutEffect === "fade") {
+      const anim = box.animate(
+        [{opacity:1},{opacity:0}],
+        {duration:700,fill:"forwards",easing:"ease-in"}
+      );
+      anim.onfinish = () => box.remove();
+      return;
+    }
+
+    // fallback: remove instantly
+    box.remove();
+  }
+
+
+  /* -----------------------------
+     Collage Loop
+  ----------------------------- */
+
+  const msPerImage = 1000 / fps;
+  const totalRun = duration * 1000;
+
+  let idx = 0;
+  let running = true;
+
+  function showNext() {
+    if (!running) return;
+
+    const url = images[idx % images.length].url;
+    idx++;
+
+    const box = createImageBox(url);
+    doInEffect(box);
+
+    // Schedule removal after a display window (~5s)
+    setTimeout(() => doOutEffect(box), 5000);
+
+    // Schedule next image
+    setTimeout(showNext, msPerImage);
+  }
+
+  // Stop entire collage after duration expires
+  setTimeout(() => {
+    running = false;
+    onDone?.();
+  }, totalRun);
+
+  showNext();
+}
+
+/* ------------------------------------------------------------
+   Main slideshow controller
+------------------------------------------------------------ */
+async function start(){
+  const slides=await loadShow();
+  const box=document.getElementById("slideshow");
+
+  if(!slides.length){
+    box.innerHTML="<h1 style='color:white'>No slides</h1>";
+    return;
+  }
+
+  let idx=0;
+  const a=document.createElement("div"),
+        b=document.createElement("div");
+
+  a.className=b.className="slide";
+  box.append(a,b);
+
+  /* ------------------------------------------------------------
+     Render a single slide
+  ------------------------------------------------------------ */
+  async function renderSlide(target,slide,all,onDone){
+    target.innerHTML="";
+    const type=(slide.type||"").toLowerCase();
+
+    console.log(`▶ renderSlide: ${slide.id||"(no id)"} type=${type}`);
+
+    /* ---------- YOUTUBE ---------- */
+    if (type === "youtube" && slide.video_id) {
+      const f = document.createElement("iframe");
+      f.allow = "autoplay; fullscreen";
+
+      let src = `https://www.youtube.com/embed/${slide.video_id}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1`;
+
+      // Add start time if provided and > 0
+      if (slide.start && Number(slide.start) > 0) {
+        src += `&start=${Number(slide.start)}`;
+      }
+
+      f.src = src;
+      target.appendChild(f);
+
+      if (onDone && slide.duration !== "infinite") {
+        setTimeout(onDone, (slide.duration || 30) * 1000);
+      }
+      return;
+    }
+
+    /* ---------- MOVIE ---------- */
     if (type === "movie" && slide.file) {
       console.log("🎞 Movie file:", slide.file);
 
       const vid = document.createElement("video");
 
-      vid.src = slide.file;   // already encoded correctly
-      // or safer:
-      vid.src = decodeURI(slide.file);
-
-      vid.autoplay = false;              // Chrome will block sound if true
-      vid.muted = false;                 // we WANT sound
+      // ✔ Chrome autoplay rule: MUST be muted BEFORE assigning src
+      vid.muted = true;
+      vid.autoplay = true;
       vid.controls = false;
       vid.playsInline = true;
-      vid.style.width = "100%";
-      vid.style.height = "100%";
-      vid.style.objectFit = "contain";
-      vid.style.background = "black";
+
+      // After autoplay & muted flags are set → safe to assign src
+      vid.src = slide.file;
+
+      Object.assign(vid.style, {
+        width: "100%",
+        height: "100%",
+        objectFit: "contain",
+        background: "black"
+      });
 
       target.appendChild(vid);
 
-      // ----- DEBUGGING -----
-      vid.addEventListener("error", () => {
-        console.error("VIDEO ERROR:", vid.error);
-      });
+      vid.addEventListener("error", () =>
+        console.error("VIDEO ERROR:", vid.error)
+      );
 
-      // ----- FIX #2: Wait for metadata before attempting playback -----
       vid.addEventListener("loadedmetadata", () => {
-        console.log("🎞 metadata loaded, attempting playback…");
+        // START OFFSET (seconds)
+        if (slide.start && Number(slide.start) > 0) {
+          const startSeconds = Number(slide.start);
+          console.log(`⏩ Seeking to ${startSeconds}s`);
+          vid.currentTime = startSeconds;
+        }
+
 
         const attemptPlay = () => {
           vid.play().catch(err => {
-            console.error("▶️ Sounded playback failed:", err);
+            console.error("▶️ Playback failed:", err);
 
-            // ---- FIX #3: fallback to muted autoplay (works everywhere) ----
+            // ✔ If Chrome still refuses (rare), keep muted
             if (err.name === "NotAllowedError") {
-              console.warn("Autoplay with sound blocked → retry muted");
               vid.muted = true;
-              vid.play().catch(err2 => {
-                console.error("▶️ Muted playback failed too:", err2);
-              });
+              vid.play().catch(e2 =>
+                console.error("▶️ Muted playback also failed:", e2)
+              );
             }
           });
         };
 
-        // Chrome requires a micro-delay once DOM is updated
+        // Keep your slight delay
         setTimeout(attemptPlay, 50);
       });
 
-      // ----- Auto-advance if duration is not infinite -----
       if (onDone && slide.duration !== "infinite") {
         vid.addEventListener("ended", () => onDone());
         setTimeout(onDone, (slide.duration || 30) * 1000);
@@ -147,48 +351,43 @@ async function start(){
 
       return;
     }
-    // ---------- REMOTE STILL IMAGE (https:// OneDrive, SharePoint, Google, Flickr, etc.) ----------
-    if (slide.file && /^https?:\/\//i.test(slide.file)) {
-      const dur = slide.duration && slide.duration > 0 ? slide.duration : 5;
 
-      const holder = document.createElement("div");
-      Object.assign(holder.style, {
-        width: "100%",
-        height: "100%",
-        background: "black",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+    /* ---------- REMOTE STILL IMAGE ---------- */
+    if(slide.file && /^https?:\/\//i.test(slide.file)){
+      const dur = slide.duration>0?slide.duration:5;
+
+      const holder=document.createElement("div");
+      Object.assign(holder.style,{
+        width:"100%",height:"100%",background:"black",
+        display:"flex",alignItems:"center",justifyContent:"center"
       });
       target.appendChild(holder);
 
-      const img = document.createElement("img");
-      Object.assign(img.style, {
-        maxWidth: "100%",
-        maxHeight: "100%",
-        objectFit: "contain",
-        willChange: "transform",
+      const img=document.createElement("img");
+      Object.assign(img.style,{
+        maxWidth:"100%",maxHeight:"100%",objectFit:"contain"
       });
       holder.appendChild(img);
 
-      img.src = slide.file;
-      img.onload = () => {
-        applyEffect(img, slide.effect, dur);
-        setTimeout(onDone, dur * 1000);
+      img.src=slide.file;
+      img.onload=()=>{
+        applyEffect(img,slide.effect,dur);
+        setTimeout(onDone,dur*1000);
       };
-      img.onerror = () => {
-        console.warn("Failed to load remote image:", slide.file);
-        onDone?.();
-      };
-
-      return;           // <-- Critical! Prevents fallback execution
+      img.onerror=()=>onDone?.();
+      return;
     }
 
-
-
-    // ---------- LOCAL STILL IMAGE (served from /photos) ----------
-    if (slide.file && !slide.file.includes("*")) {
-      const dur = slide.duration && slide.duration > 0 ? slide.duration : 5;
+    /* ---------- LOCAL STILL IMAGE ---------- */
+    if (
+      slide.file &&
+      !slide.file.includes("*") &&
+      !slide.file.toLowerCase().endsWith(".mp4") &&
+      !slide.file.toLowerCase().endsWith(".mkv") &&
+      !slide.file.toLowerCase().endsWith(".webm") &&
+      type !== "movie"
+    ) {
+      const dur = slide.duration > 0 ? slide.duration : 5;
 
       const holder = document.createElement("div");
       Object.assign(holder.style, {
@@ -206,14 +405,12 @@ async function start(){
         maxWidth: "100%",
         maxHeight: "100%",
         objectFit: "contain",
-        willChange: "transform",
       });
       holder.appendChild(img);
 
+      // Extract base filename without extension
       const base = slide.file.replace(/^.*[\\/]/, "").split(".")[0];
       let triedUpper = false;
-
-      const tryLoad = (src) => (img.src = src);
 
       img.onload = () => {
         applyEffect(img, slide.effect, dur);
@@ -223,469 +420,209 @@ async function start(){
       img.onerror = () => {
         if (!triedUpper) {
           triedUpper = true;
-          tryLoad(`/photos/${base}.JPG`);
+          img.src = `/media/photos/${base}.JPG`;
         } else {
           console.warn("Failed to load local image:", slide.file);
           onDone?.();
         }
       };
 
-      tryLoad(`/photos/${base}.jpg`);
+      // FIRST attempt (lowercase extension)
+      img.src = `/media/photos/${base}.jpg`;
       return;
     }
 
-    // ---------- GOOGLE / ONE DRIVE ----------
-    if((type==="google-drive"||type==="one-drive")&&slide.images?.length){
-      // ---- COLLAGE EFFECT ----
-      if(slide.effect==="collage"){
-        const fps=slide.fps||0.333;
-        const duration=slide.duration||60;
-        let images=[...slide.images];
-        if(slide.order==="random")images.sort(()=>Math.random()-0.5);
-        const totalImages=images.length;
-        const maxActive=slide.maxActive||8;
-        const spawnDelay=1000/fps;
 
-        const imageMaxPosition=(slide.imageMaxPosition??0.33);
-        const imageMinSize=(slide.imageMinSize??0.25);
-        const imageMaxSize=(slide.imageMaxSize??0.33);
-        const borderColor=slide.borderColor||"rgba(255,255,255,0.9)";
-        const background=slide.background||"black";
-        const imageInEffect=(slide.imageInEffect||"fade").toLowerCase();
-        const imageOutEffect=(slide.imageOutEffect||"fade").toLowerCase();
 
-        const wrapper=document.createElement("div");
-        Object.assign(wrapper.style,{position:"absolute",inset:0,background,overflow:"hidden"});
-        target.appendChild(wrapper);
+    /* ---------- COLLAGE (RESTORED — supports Google + OneDrive + folder) ---------- */
+    if (
+      slide.effect === "collage" &&
+      slide.images?.length &&
+      (type === "google-drive" || type === "one-drive" || type === "image-folder")
+    ) {
+      return renderCollage(target, slide, onDone);
+    }
 
-        let active=[];let cancelled=false;let imgIndex=0;let zTop=1000;
-
-        const removeImage=(old)=>{
-          if(imageOutEffect==="cut"){old.remove();}
-          else if(imageOutEffect==="fade"){
-            old.style.transition="opacity 1.5s ease-in-out";
-            old.style.opacity=0;
-            setTimeout(()=>old.remove(),1500);
-          }
-        };
-
-        const spawn=()=>{
-          if(cancelled)return;
-          const img=document.createElement("img");
-          const sizeFrac=imageMinSize+Math.random()*(imageMaxSize-imageMinSize);
-          const rect=wrapper.getBoundingClientRect();
-          let borderPx=1;
-          if(slide.borderWidth!==undefined){
-            borderPx=Number(slide.borderWidth);
-          }else{
-            borderPx=Math.max(1,rect.width*0.01);
-          }
-
-          let spread=imageMaxPosition;
-          if(imgIndex===0)spread=0;
-          else if(imgIndex===1)spread=imageMaxPosition/2;
-          const offsetX=(Math.random()*2-1)*spread;
-          const offsetY=(Math.random()*2-1)*spread;
-
-          Object.assign(img.style,{
-            position:"absolute",
-            width:`${sizeFrac*100}%`,
-            height:`${sizeFrac*100}%`,
-            objectFit:"cover",
-            opacity:(imageInEffect==="cut"?1:0),
-            left:`calc(50% + ${offsetX*100}% - ${sizeFrac*50}%)`,
-            top:`calc(50% + ${offsetY*100}% - ${sizeFrac*50}%)`,
-            zIndex:++zTop,
-            border:`${borderPx}px solid ${borderColor}`,
-            boxSizing:"border-box",
-            filter:"drop-shadow(0 0 8px rgba(0,0,0,0.4))",
-            transition:(imageInEffect==="fade"?"opacity 1.5s ease-in-out":"none")
-          });
-
-          img.src=images[imgIndex++%totalImages].url;
-          wrapper.appendChild(img);
-          if(imageInEffect==="fade")requestAnimationFrame(()=>img.style.opacity=1);
-
-          active.push(img);
-          if(active.length>maxActive){
-            const old=active.shift();
-            old.style.zIndex=zTop-maxActive;
-            removeImage(old);
-          }
-        };
-
-        const loop=setInterval(spawn,spawnDelay);
-        const stop=()=>{cancelled=true;clearInterval(loop);};
-        setTimeout(()=>{
-          stop();
-          active.forEach((img,i)=>setTimeout(()=>removeImage(img),i*200));
-          onDone?.();
-        },duration*1000);
-
-        const obs=new MutationObserver(()=>{if(!document.body.contains(target)){stop();obs.disconnect();}});
-        obs.observe(document.body,{childList:true,subtree:true});
-        return;
-      }
-
-      // ---- FADE / CUT ----
+    /* ---------- GOOGLE / ONEDRIVE (non-collage) ---------- */
+    if((type==="google-drive"||type==="one-drive") && slide.images?.length){
       const frames=slide.images.map(i=>i.url);
+
       const wrapper=document.createElement("div");
       Object.assign(wrapper.style,{position:"relative",width:"100%",height:"100%"});
       target.appendChild(wrapper);
-      let index=0;let cancelled=false;
-      if(slide.order==="random")frames.sort(()=>Math.random()-0.5);
-      await Promise.all(frames.map(src=>new Promise(r=>{const im=new Image();im.onload=im.onerror=r;im.src=src;})));
-      const imgA=document.createElement("img"),imgB=document.createElement("img");
-      [imgA,imgB].forEach(img=>Object.assign(img.style,{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"contain",opacity:0,transition:"opacity 1s ease-in-out"}));
-      wrapper.append(imgA,imgB);imgA.style.opacity=1;
-      const dur=(slide.duration||10)*1000;const fade=slide.effect==="fade";
-      const showNext=()=>{if(cancelled)return;const next=frames[index%frames.length];const active=index%2?imgA:imgB;const passive=index%2?imgB:imgA;active.src=next;if(fade){active.style.opacity=1;passive.style.opacity=0;}else{passive.style.opacity=0;active.style.opacity=1;}index++;setTimeout(showNext,dur);};
+
+      await Promise.all(frames.map(src=>new Promise(resolve=>{
+        const im=new Image();
+        im.onload=im.onerror=resolve;
+        im.src=src;
+      })));
+
+      const imgA=document.createElement("img"),
+            imgB=document.createElement("img");
+
+      [imgA,imgB].forEach(img=>Object.assign(img.style,{
+        position:"absolute",inset:0,width:"100%",height:"100%",
+        objectFit:"contain",opacity:0,transition:"opacity 1s ease-in-out"
+      }));
+
+      wrapper.append(imgA,imgB);
+      imgA.style.opacity=1;
+
+      const dur=(slide.duration||10)*1000;
+      let index=0;
+      const showNext=()=>{
+        const next=frames[index%frames.length];
+        const active=index%2?imgA:imgB;
+        const passive=index%2?imgB:imgA;
+        active.src=next;
+        active.style.opacity=1;
+        passive.style.opacity=0;
+        index++;
+        setTimeout(showNext,dur);
+      };
       showNext();
-      const observer=new MutationObserver(()=>{if(!document.body.contains(target)){cancelled=true;observer.disconnect();}});
-      observer.observe(document.body,{childList:true,subtree:true});
-      setTimeout(()=>{observer.disconnect();onDone?.();},frames.length*dur);
+
+      setTimeout(onDone,frames.length*dur);
       return;
     }
 
-    // ---------- HTML ----------
-    if(type==="html"&&slide.url){
+    /* ---------- HTML ---------- */
+    if(type==="html" && slide.url){
       const f=document.createElement("iframe");
       f.src=slide.url;
       f.allow="autoplay; fullscreen; clipboard-write; encrypted-media; picture-in-picture";
       f.allowFullscreen=true;
-      f.style.pointerEvents="auto";    // ← critical for Sonos control
-      f.style.zIndex="100";
       target.appendChild(f);
-      if(onDone&&slide.duration!=="infinite")setTimeout(onDone,(slide.duration||15)*1000);
+
+      if(onDone && slide.duration!=="infinite")
+        setTimeout(onDone,(slide.duration||15)*1000);
       return;
     }
 
-    // ---------- MUX ----------
+    /* ---------- MUX ---------- */
     if(type==="mux"){
       const grid=document.createElement("div");
       grid.className="mux-grid";
-      const[rows,cols]=slide.layout.split("x").map(Number);
-      grid.style.gridTemplateRows=`repeat(${rows},1fr)`;
-      grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
-      target.appendChild(grid);
-      slide.panels.forEach((panel,pi)=>{
-        const cell=document.createElement("div");cell.className="mux-cell";
-        const inner=document.createElement("div");inner.className="mux-inner";
-        cell.appendChild(inner);grid.appendChild(cell);
-        const{x,y}=parseAlign(panel.align);inner.dataset.scale=panel.scale||1;
-        const pos=()=>{const r=cell.getBoundingClientRect();
-          inner.style.justifyContent=(x==="left"?"flex-start":x==="right"?"flex-end":"center");
-          inner.style.alignItems=(y==="top"?"flex-start":y==="bottom"?"flex-end":"center");
-          let tx=0,ty=0;if(x.endsWith("%"))tx=((parseFloat(x)-50)/100)*r.width;
-          if(y.endsWith("%"))ty=((parseFloat(y)-50)/100)*r.height;
-          inner.style.transform=`translate(${tx}px,${ty}px) scale(${inner.dataset.scale})`;};
-        pos();new ResizeObserver(pos).observe(cell);
 
-        // const deck=(panel.slides||[]).map(id=>all.find(s=>s.id===id)).filter(Boolean);
+      const [rows,cols]=slide.layout.split("x").map(Number);
+      grid.style.gridTemplateRows=`repeat(${rows},1fr)`;
+      grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
 
-        const deck = (panel.slides || [])
-          .flatMap(id => 
-            all.filter(s => s.id === id || s.parentId === id)
-          )
-          .filter(Boolean);
-          
-        // 🔥 DEBUG: Inspect what MUX thinks is in this panel
-        console.log("MUX PANEL DECK", {
-          panelIndex: pi,
-          requestedIds: panel.slides,
-          resolvedSlides: deck.map(s => ({
-            id: s.id,
-            type: s.type,
-            file: s.file,
-            imagesLen: s.images?.length
-          }))
-        });
+      target.appendChild(grid);
 
+      slide.panels.forEach((panel,pi)=>{
+        const cell=document.createElement("div");
+        cell.className="mux-cell";
 
-        if(!deck.length)return;
-        (async()=>{await new Promise(r=>setTimeout(r,pi*250));
-          while(true){for(const s of deck){inner.innerHTML="";
-            await new Promise(done=>renderSlide(inner,{...s,suppressTitle:true},all,done));}}})();
-      });
-      return;
-    }
-    // ---------- MUX ----------
-    if(type==="mux"){
-      const grid=document.createElement("div");
-      grid.className="mux-grid";
-      const[rows,cols]=slide.layout.split("x").map(Number);
-      grid.style.gridTemplateRows=`repeat(${rows},1fr)`;
-      grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
-      target.appendChild(grid);
-      slide.panels.forEach((panel,pi)=>{
-        const cell=document.createElement("div");cell.className="mux-cell";
-        const inner=document.createElement("div");inner.className="mux-inner";
-        cell.appendChild(inner);grid.appendChild(cell);
-        const{x,y}=parseAlign(panel.align);inner.dataset.scale=panel.scale||1;
-        const pos=()=>{const r=cell.getBoundingClientRect();
-          inner.style.justifyContent=(x==="left"?"flex-start":x==="right"?"flex-end":"center");
-          inner.style.alignItems=(y==="top"?"flex-start":y==="bottom"?"flex-end":"center");
-          let tx=0,ty=0;if(x.endsWith("%"))tx=((parseFloat(x)-50)/100)*r.width;
-          if(y.endsWith("%"))ty=((parseFloat(y)-50)/100)*r.height;
-          inner.style.transform=`translate(${tx}px,${ty}px) scale(${inner.dataset.scale})`;};
-        pos();new ResizeObserver(pos).observe(cell);
-        const deck=(panel.slides||[]).map(id=>all.find(s=>s.id===id)).filter(Boolean);
-        if(!deck.length)return;
-        (async()=>{await new Promise(r=>setTimeout(r,pi*250));
-          while(true){for(const s of deck){inner.innerHTML="";
-            await new Promise(done=>renderSlide(inner,{...s,suppressTitle:true},all,done));}}})();
-      });
-      return;
-    }
-    // ---------- MUX ----------
-    if(type==="mux"){
-      const grid=document.createElement("div");
-      grid.className="mux-grid";
-      const[rows,cols]=slide.layout.split("x").map(Number);
-      grid.style.gridTemplateRows=`repeat(${rows},1fr)`;
-      grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
-      target.appendChild(grid);
-      slide.panels.forEach((panel,pi)=>{
-        const cell=document.createElement("div");cell.className="mux-cell";
-        const inner=document.createElement("div");inner.className="mux-inner";
-        cell.appendChild(inner);grid.appendChild(cell);
-        const{x,y}=parseAlign(panel.align);inner.dataset.scale=panel.scale||1;
-        const pos=()=>{const r=cell.getBoundingClientRect();
-          inner.style.justifyContent=(x==="left"?"flex-start":x==="right"?"flex-end":"center");
-          inner.style.alignItems=(y==="top"?"flex-start":y==="bottom"?"flex-end":"center");
-          let tx=0,ty=0;if(x.endsWith("%"))tx=((parseFloat(x)-50)/100)*r.width;
-          if(y.endsWith("%"))ty=((parseFloat(y)-50)/100)*r.height;
-          inner.style.transform=`translate(${tx}px,${ty}px) scale(${inner.dataset.scale})`;};
-        pos();new ResizeObserver(pos).observe(cell);
-        const deck=(panel.slides||[]).map(id=>all.find(s=>s.id===id)).filter(Boolean);
-        if(!deck.length)return;
-        (async()=>{await new Promise(r=>setTimeout(r,pi*250));
-          while(true){for(const s of deck){inner.innerHTML="";
-            await new Promise(done=>renderSlide(inner,{...s,suppressTitle:true},all,done));}}})();
-      });
-      return;
-    }
-    // ---------- MUX ----------
-    if(type==="mux"){
-      const grid=document.createElement("div");
-      grid.className="mux-grid";
-      const[rows,cols]=slide.layout.split("x").map(Number);
-      grid.style.gridTemplateRows=`repeat(${rows},1fr)`;
-      grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
-      target.appendChild(grid);
-      slide.panels.forEach((panel,pi)=>{
-        const cell=document.createElement("div");cell.className="mux-cell";
-        const inner=document.createElement("div");inner.className="mux-inner";
-        cell.appendChild(inner);grid.appendChild(cell);
-        const{x,y}=parseAlign(panel.align);inner.dataset.scale=panel.scale||1;
-        const pos=()=>{const r=cell.getBoundingClientRect();
-          inner.style.justifyContent=(x==="left"?"flex-start":x==="right"?"flex-end":"center");
-          inner.style.alignItems=(y==="top"?"flex-start":y==="bottom"?"flex-end":"center");
-          let tx=0,ty=0;if(x.endsWith("%"))tx=((parseFloat(x)-50)/100)*r.width;
-          if(y.endsWith("%"))ty=((parseFloat(y)-50)/100)*r.height;
-          inner.style.transform=`translate(${tx}px,${ty}px) scale(${inner.dataset.scale})`;};
-        pos();new ResizeObserver(pos).observe(cell);
-        const deck=(panel.slides||[]).map(id=>all.find(s=>s.id===id)).filter(Boolean);
-        if(!deck.length)return;
-        (async()=>{await new Promise(r=>setTimeout(r,pi*250));
-          while(true){for(const s of deck){inner.innerHTML="";
-            await new Promise(done=>renderSlide(inner,{...s,suppressTitle:true},all,done));}}})();
-      });
-      return;
-    }
-    // ---------- MUX ----------
-    if(type==="mux"){
-      const grid=document.createElement("div");
-      grid.className="mux-grid";
-      const[rows,cols]=slide.layout.split("x").map(Number);
-      grid.style.gridTemplateRows=`repeat(${rows},1fr)`;
-      grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
-      target.appendChild(grid);
-      slide.panels.forEach((panel,pi)=>{
-        const cell=document.createElement("div");cell.className="mux-cell";
-        const inner=document.createElement("div");inner.className="mux-inner";
-        cell.appendChild(inner);grid.appendChild(cell);
-        const{x,y}=parseAlign(panel.align);inner.dataset.scale=panel.scale||1;
-        const pos=()=>{const r=cell.getBoundingClientRect();
-          inner.style.justifyContent=(x==="left"?"flex-start":x==="right"?"flex-end":"center");
-          inner.style.alignItems=(y==="top"?"flex-start":y==="bottom"?"flex-end":"center");
-          let tx=0,ty=0;if(x.endsWith("%"))tx=((parseFloat(x)-50)/100)*r.width;
-          if(y.endsWith("%"))ty=((parseFloat(y)-50)/100)*r.height;
-          inner.style.transform=`translate(${tx}px,${ty}px) scale(${inner.dataset.scale})`;};
-        pos();new ResizeObserver(pos).observe(cell);
-        const deck=(panel.slides||[]).map(id=>all.find(s=>s.id===id)).filter(Boolean);
-        if(!deck.length)return;
-        (async()=>{await new Promise(r=>setTimeout(r,pi*250));
-          while(true){for(const s of deck){inner.innerHTML="";
-            await new Promise(done=>renderSlide(inner,{...s,suppressTitle:true},all,done));}}})();
-      });
-      return;
-    }
-    // ---------- MUX ----------
-    if(type==="mux"){
-      const grid=document.createElement("div");
-      grid.className="mux-grid";
-      const[rows,cols]=slide.layout.split("x").map(Number);
-      grid.style.gridTemplateRows=`repeat(${rows},1fr)`;
-      grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
-      target.appendChild(grid);
-      slide.panels.forEach((panel,pi)=>{
-        const cell=document.createElement("div");cell.className="mux-cell";
-        const inner=document.createElement("div");inner.className="mux-inner";
-        cell.appendChild(inner);grid.appendChild(cell);
-        const{x,y}=parseAlign(panel.align);inner.dataset.scale=panel.scale||1;
-        const pos=()=>{const r=cell.getBoundingClientRect();
-          inner.style.justifyContent=(x==="left"?"flex-start":x==="right"?"flex-end":"center");
-          inner.style.alignItems=(y==="top"?"flex-start":y==="bottom"?"flex-end":"center");
-          let tx=0,ty=0;if(x.endsWith("%"))tx=((parseFloat(x)-50)/100)*r.width;
-          if(y.endsWith("%"))ty=((parseFloat(y)-50)/100)*r.height;
-          inner.style.transform=`translate(${tx}px,${ty}px) scale(${inner.dataset.scale})`;};
-        pos();new ResizeObserver(pos).observe(cell);
-        const deck=(panel.slides||[]).map(id=>all.find(s=>s.id===id)).filter(Boolean);
-        if(!deck.length)return;
-        (async()=>{await new Promise(r=>setTimeout(r,pi*250));
-          while(true){for(const s of deck){inner.innerHTML="";
-            await new Promise(done=>renderSlide(inner,{...s,suppressTitle:true},all,done));}}})();
-      });
-      return;
-    }
-    // ---------- MUX ----------
-    if(type==="mux"){
-      const grid=document.createElement("div");
-      grid.className="mux-grid";
-      const[rows,cols]=slide.layout.split("x").map(Number);
-      grid.style.gridTemplateRows=`repeat(${rows},1fr)`;
-      grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
-      target.appendChild(grid);
-      slide.panels.forEach((panel,pi)=>{
-        const cell=document.createElement("div");cell.className="mux-cell";
-        const inner=document.createElement("div");inner.className="mux-inner";
-        cell.appendChild(inner);grid.appendChild(cell);
-        const{x,y}=parseAlign(panel.align);inner.dataset.scale=panel.scale||1;
-        const pos=()=>{const r=cell.getBoundingClientRect();
-          inner.style.justifyContent=(x==="left"?"flex-start":x==="right"?"flex-end":"center");
-          inner.style.alignItems=(y==="top"?"flex-start":y==="bottom"?"flex-end":"center");
-          let tx=0,ty=0;if(x.endsWith("%"))tx=((parseFloat(x)-50)/100)*r.width;
-          if(y.endsWith("%"))ty=((parseFloat(y)-50)/100)*r.height;
-          inner.style.transform=`translate(${tx}px,${ty}px) scale(${inner.dataset.scale})`;};
-        pos();new ResizeObserver(pos).observe(cell);
-        const deck=(panel.slides||[]).map(id=>all.find(s=>s.id===id)).filter(Boolean);
-        if(!deck.length)return;
-        (async()=>{await new Promise(r=>setTimeout(r,pi*250));
-          while(true){for(const s of deck){inner.innerHTML="";
-            await new Promise(done=>renderSlide(inner,{...s,suppressTitle:true},all,done));}}})();
-      });
-      return;
-    }
-    // ---------- MUX ----------
-    if(type==="mux"){
-      const grid=document.createElement("div");
-      grid.className="mux-grid";
-      const[rows,cols]=slide.layout.split("x").map(Number);
-      grid.style.gridTemplateRows=`repeat(${rows},1fr)`;
-      grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
-      target.appendChild(grid);
-      slide.panels.forEach((panel,pi)=>{
-        const cell=document.createElement("div");cell.className="mux-cell";
-        const inner=document.createElement("div");inner.className="mux-inner";
-        cell.appendChild(inner);grid.appendChild(cell);
-        const{x,y}=parseAlign(panel.align);inner.dataset.scale=panel.scale||1;
-        const pos=()=>{const r=cell.getBoundingClientRect();
-          inner.style.justifyContent=(x==="left"?"flex-start":x==="right"?"flex-end":"center");
-          inner.style.alignItems=(y==="top"?"flex-start":y==="bottom"?"flex-end":"center");
-          let tx=0,ty=0;if(x.endsWith("%"))tx=((parseFloat(x)-50)/100)*r.width;
-          if(y.endsWith("%"))ty=((parseFloat(y)-50)/100)*r.height;
-          inner.style.transform=`translate(${tx}px,${ty}px) scale(${inner.dataset.scale})`;};
-        pos();new ResizeObserver(pos).observe(cell);
-        const deck=(panel.slides||[]).map(id=>all.find(s=>s.id===id)).filter(Boolean);
-        if(!deck.length)return;
-        (async()=>{await new Promise(r=>setTimeout(r,pi*250));
-          while(true){for(const s of deck){inner.innerHTML="";
-            await new Promise(done=>renderSlide(inner,{...s,suppressTitle:true},all,done));}}})();
+        const inner=document.createElement("div");
+        inner.className="mux-inner";
+
+        cell.appendChild(inner);
+        grid.appendChild(cell);
+
+        const {x,y}=parseAlign(panel.align);
+        inner.dataset.scale=panel.scale||1;
+
+        const pos=()=>{
+          inner.style.justifyContent =
+            x==="left"?"flex-start": x==="right"?"flex-end":"center";
+          inner.style.alignItems =
+            y==="top"?"flex-start": y==="bottom"?"flex-end":"center";
+          inner.style.transform=`scale(${inner.dataset.scale})`;
+        };
+        pos();
+        new ResizeObserver(pos).observe(cell);
+
+        const deck=(panel.slides||[])
+          .flatMap(id => all.filter(s => s.id===id || s.parentId===id));
+
+        if(!deck.length) return;
+
+        (async()=>{
+          await new Promise(r=>setTimeout(r,pi*250));
+          while(true){
+            for(const s of deck){
+              inner.innerHTML="";
+              await new Promise(done =>
+                renderSlide(inner,{...s,suppressTitle:true},all,done)
+              );
+            }
+          }
+        })();
       });
       return;
     }
 
-    // ---------- MULTI-FRAME ----------
-    if (type === "multi-frame" || slide.file?.includes("*") || (slide.frames && slide.frames.length)) {
-
-      // Holder ensures proper scaling & centering
-      const holder = document.createElement("div");
-      Object.assign(holder.style, {
-        width: "100%",
-        height: "100%",
-        background: "black",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+    /* ---------- MULTI-FRAME ---------- */
+    if(type==="multi-frame" || slide.file?.includes("*") || (slide.frames && slide.frames.length)){
+      const holder=document.createElement("div");
+      Object.assign(holder.style,{
+        width:"100%",height:"100%",background:"black",
+        display:"flex",alignItems:"center",justifyContent:"center"
       });
       target.appendChild(holder);
 
-      // The animated frame image
-      const img = document.createElement("img");
-      Object.assign(img.style, {
-        maxWidth: "100%",
-        maxHeight: "100%",
-        objectFit: "contain",
-        willChange: "transform",
-        display: "block",
+      const img=document.createElement("img");
+      Object.assign(img.style,{
+        maxWidth:"100%",maxHeight:"100%",objectFit:"contain"
       });
       holder.appendChild(img);
 
-      let frames = slide.frames || [];
+      let frames=slide.frames||[];
 
-      // Need to fetch files?
-      if (!frames.length && slide.file) {
-        const pat = slide.file.replace(/^\/?/, ""); 
-        const r = await fetch(`/api/frames?pattern=${encodeURIComponent(pat)}`);
-        const j = await r.json();
-        frames = j.frames || [];
+      if(!frames.length && slide.file){
+        const pat=slide.file.replace(/^\/?/,"");
+        const r=await fetch(`/api/frames?pattern=${encodeURIComponent(pat)}`);
+        const j=await r.json();
+        frames=j.frames||[];
       }
 
-      if (!frames.length) return onDone?.();
+      if(!frames.length) return onDone?.();
 
-      // Random ordering?
-      if (slide.order === "random") frames.sort(() => Math.random() - 0.5);
+      await Promise.all(frames.map(src=>new Promise(resolve=>{
+        const im=new Image();
+        im.onload=im.onerror=resolve;
+        im.src=src;
+      })));
 
-      // Preload all images
-      await Promise.all(
-        frames.map(
-          src =>
-            new Promise(resolve => {
-              const im = new Image();
-              im.onload = im.onerror = resolve;
-              im.src = src;
-            })
-        )
-      );
-
-      let dur = Number(slide.duration) > 0 ? Number(slide.duration) : undefined;
-      if (!dur && slide.effect === "cut" && !slide.fps) dur = frames.length * 0.5;
-
-      playFrames(img, frames, slide.fps, slide.repeat, dur ?? slide.duration, slide.effect, onDone);
+      playFrames(img,frames,slide.fps,slide.repeat,slide.duration,slide.effect,onDone);
       return;
     }
 
-    // ---------- PAUSE ----------
-    const dur=slide.duration&&slide.duration>0?slide.duration:5;
-    target.style.background="black";setTimeout(onDone,dur*1000);
+    /* ---------- PAUSE ---------- */
+    const dur=slide.duration>0?slide.duration:5;
+    target.style.background="black";
+    setTimeout(onDone,dur*1000);
   }
 
-  // ---------- SHOW SLIDE ----------
+  /* ------------------------------------------------------------
+     Slide switching
+------------------------------------------------------------ */
   function showSlide(i){
-    if(i<0)i=slides.length-1;if(i>=slides.length)i=0;idx=i;
-    const next=slides[idx];const ns=idx%2?b:a,cs=idx%2?a:b;
+    if(i<0) i=slides.length-1;
+    if(i>=slides.length) i=0;
+    idx=i;
 
-    ns.classList.add("active");       // mark visible slide
-    cs.classList.remove("active");    // disable previous slide
+    const next=slides[idx];
+    const ns=idx%2?b:a;
+    const cs=idx%2?a:b;
+
+    cs.innerHTML="";
+
+    ns.classList.add("active");
+    cs.classList.remove("active");
 
     renderSlide(ns,next,slides,()=>showSlide(idx+1));
+
     ns.style.opacity=1;
     cs.style.opacity=0;
   }
 
-  renderSlide(a,slides[0],slides,()=>showSlide(1));a.style.opacity=1;a.classList.add("active");
+  renderSlide(a,slides[0],slides,()=>showSlide(1));
+  a.style.opacity=1;
+  a.classList.add("active");
 }
+
 start();
 </script>
 </body>

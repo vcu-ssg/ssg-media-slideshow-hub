@@ -2,7 +2,7 @@ import express from "express";
 import morgan from "morgan";
 import dotenv from "dotenv";
 
-import { PUBLIC_DIR, MEDIA_DIR, RUNTIME_DIR, PHOTOS_DIR } from "./shared/paths.js";
+import { PUBLIC_DIR, MEDIA_DIR, RUNTIME_DIR, PHOTOS_DIR, PROJECT_ROOT, MOVIES_DIR } from "./shared/paths.js";
 
 // API v1 Routers
 import slideshowRouter from "./api/v1/slideshow/slideshow-router.js";
@@ -22,9 +22,10 @@ const PORT = process.env.PORT || 3000;
 
 import path from "path";
 
-console.log("MEDIA_DIR =", MEDIA_DIR);
-console.log("MOVIE_ROOT =", path.join(MEDIA_DIR, "movies"));
-
+console.log("PROJECT_ROOT =", PROJECT_ROOT);
+console.log("MEDIA_DIR    =", MEDIA_DIR);
+console.log("PHOTOS_DIR   =", PHOTOS_DIR);
+console.log("MOVIES_DIR =", MOVIES_DIR);
 
 // middleware
 app.use(express.json());
@@ -35,7 +36,8 @@ app.use(morgan("combined"));
 app.use(express.static(PUBLIC_DIR));
 app.use("/media", express.static(MEDIA_DIR));
 app.use("/runtime", express.static(RUNTIME_DIR));
-app.use("/photos", express.static(PHOTOS_DIR));
+app.use("/media/photos", express.static(PHOTOS_DIR));
+app.use("/media/movies", express.static(MOVIES_DIR));
 
 // Mount slideshow generic and versioned
 app.use("/api/slideshow", slideshowRouter);

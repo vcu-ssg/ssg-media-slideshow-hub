@@ -7,7 +7,7 @@
   "main": "src/backend/server.js",
   "scripts": {
     "start": "node src/backend/server.js",
-    "dev": "NODE_ENV=development MEDIA_DIR=/mnt/dockermedia/media node src/backend/server.js"
+    "dev": "NODE_ENV=development MOVIES_DIR=/mnt/dockermedia/media/movies node src/backend/server.js"
   },
   "bin": {
     "casthub": "src/cli/casthub.js"
