@@ -8,17 +8,17 @@ import { buildSlideshowForClient } from "./slideshow-service.js";
 
 const router = Router();
 
-// GET /api/v1/slideshow?client=frontporch
+// GET /api/v1/slideshow?slideshow=frontporch
 router.get("/", async (req, res) => {
   try {
-    const client = (req.query.client || "default").toLowerCase();
+    const slideshow = (req.query.slideshow || "default").toLowerCase();
 
     const config = loadSlideshowConfig();
-    const slides = await buildSlideshowForClient(client, config);
+    const slides = await buildSlideshowForClient(slideshow, config);
 
     res.json({
       ok: true,
-      client,
+      slideshow,
       count: slides.length,
       slides,
     });

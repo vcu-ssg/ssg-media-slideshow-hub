@@ -15,8 +15,11 @@ export function loadSlideshowConfig() {
     const text = fs.readFileSync(SLIDESHOW_CONFIG_FILE, "utf8");
     const cfg = yaml.load(text);
 
-    cfg.clients ||= {};
-    cfg.default ||= {};
+    // Ensure new structure exists
+    cfg.slideshows ||= {};
+
+    // Always ensure a default slideshow exists (even if empty)
+    cfg.slideshows.default ||= { include: [] };
 
     return cfg;
   } catch (err) {

@@ -19,7 +19,9 @@ export const PUBLIC_DIR = path.join(PROJECT_ROOT, "public");
 console.log("📁 PUBLIC_DIR resolved to:", PUBLIC_DIR);
 
 // Media directory (/media)
-export const MEDIA_DIR = path.join(PROJECT_ROOT, "media");
+//export const MEDIA_DIR = path.join(PROJECT_ROOT, "media");
+export const MEDIA_DIR = process.env.MEDIA_DIR || path.join(PROJECT_ROOT, "media");
+
 
 // Published media subdirectories
 export const MOVIES_DIR = path.join(MEDIA_DIR, "movies");

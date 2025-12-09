@@ -13,11 +13,11 @@ import { resolveMovieFile } from "../movies/movie-service.js";
 // BUILD SLIDESHOW FOR CLIENT
 // ------------------------------------------------------------
 
-export async function buildSlideshowForClient(client, config) {
+export async function buildSlideshowForClient(slideshow, config) {
   const master = config.slides || [];
-  const clients = config.clients || {};
-  const clientCfg = clients[client] || {};
-  const defaultCfg = config.default || {};
+  const slideshows = config.slideshows || {};
+  const clientCfg = slideshows[slideshow] || {};
+  const defaultCfg = config.slideshows.default || {};
 
   // ENTRY SLIDES
   const includeIds =
@@ -350,15 +350,22 @@ async function expandOneDrive(slide) {
 
 async function expandMovie(slide) {
   try {
-    const resolved = await resolveMovieFile(slide.id);
+    if (!slide.folder) {
+      throw new Error(`Movie slide '${slide.id}' is missing folder property`);
+    }
+
+    const resolved = await resolveMovieFile(slide.folder);
+
     return {
       ...slide,
       type: "movie",
-      file: resolved,
+      file: resolved,      // absolute or URL path to movie file
+      folder: slide.folder
     };
+
   } catch (err) {
-    console.error(`⚠️ Movie expand failed for ${slide.id}: ${err.message}`);
-    return slide;
+    console.error(`⚠️ Movie expand failed for folder '${slide.folder}': ${err.message}`);
+    return slide;  // safe fallback
   }
 }
 

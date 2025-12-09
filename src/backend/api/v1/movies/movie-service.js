@@ -26,7 +26,6 @@ export function resolveMovieFile(folderName) {
     throw new Error(`Movie folder not found: ${folderPath}`);
   }
 
-  // Try MKV first, but support MP4 as well
   const files = fs.readdirSync(folderPath);
   const movie =
     files.find((f) => f.toLowerCase().endsWith(".mkv")) ||
@@ -36,7 +35,8 @@ export function resolveMovieFile(folderName) {
     throw new Error(`No MKV/MP4 found in folder: ${folderPath}`);
   }
 
-  return path.join(folderPath, movie);
+  // IMPORTANT: Return the URL—not the filesystem path.
+  return `/media/movies/${encodeURIComponent(folderName)}/${encodeURIComponent(movie)}`;
 }
 
 // ------------------------------------------------------------

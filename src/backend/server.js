@@ -20,6 +20,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+import path from "path";
+
+console.log("MEDIA_DIR =", MEDIA_DIR);
+console.log("MOVIE_ROOT =", path.join(MEDIA_DIR, "movies"));
+
+
 // middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
