@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Casthub Minimal Sender</title>
+
+  <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+</head>
+<body>
+
+<button id="launch">Launch Kiosk on Chromecast</button>
+
+<script>
+  const APP_ID = "A60394C6";
+
+  window.__onGCastApiAvailable = function(isAvailable) {
+    if (isAvailable) {
+      console.log("Cast API Ready");
+    }
+  };
+
+  document.getElementById("launch").onclick = async () => {
+    const context = cast.framework.CastContext.getInstance();
+
+    context.setOptions({
+      receiverApplicationId: APP_ID,
+      autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+    });
+
+    const session = await context.requestSession();
+    console.log("Connected to Cast Session:", session.getSessionId());
+  };
+</script>
+
+</body>
+</html>

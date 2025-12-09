@@ -234,8 +234,9 @@ slides:
 
 # --- Default playlist shared by all kiosks ---
 default:
+  #include: [ christmas_movie_1  ]
   include: [ mux_2x2_2 ]
-  #include: [ google_fda_album_2025_05_20 ]
+  # include: [ google_fda_album_2025_05_20 ]
 
 # --- Client-specific playlists (subsets or overrides) ---
 

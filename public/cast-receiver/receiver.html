@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Casthub Minimal Receiver</title>
+
+  <!-- Cast Application Framework -->
+  <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      width: 100%;
+      background: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-family: sans-serif;
+      font-size: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div id="status">Starting receiver…</div>
+
+  <script>
+    const TARGET_URL = "http://doveshell:3000/index.html";
+
+    const context = cast.framework.CastReceiverContext.getInstance();
+    const status = document.getElementById("status");
+
+    function log(msg) {
+      console.log(msg);
+      status.innerText = msg;
+    }
+
+    log("Receiver started. Loading kiosk…");
+
+    // The magic: Navigate the whole Web Receiver to your kiosk URL
+    window.location.href = TARGET_URL;
+
+    // Start CAF (not actually used, but required for Cast compliance)
+    context.start();
+  </script>
+</body>
+</html>

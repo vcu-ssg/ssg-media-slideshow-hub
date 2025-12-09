@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Casthub Receiver</title>
+
+  <!-- Load the Cast Receiver Framework -->
+  <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: sans-serif;
+      color: #ccc;
+    }
+
+    #loading {
+      font-size: 20px;
+    }
+
+    iframe {
+      border: none;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loading">Starting Casthub Receiver...</div>
+
+  <iframe id="appFrame" style="display:none;"></iframe>
+
+  <script src="receiver.js"></script>
+</body>
+</html>
