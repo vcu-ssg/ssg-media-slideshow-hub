@@ -6,7 +6,7 @@ const discover = new Command("discover")
   .action(async () => {
     console.log("Scanning for cast-enabled devices...\n");
 
-    const devices = await discoverChromecastsMDNS(2000);
+    const devices = await discoverChromecastsMDNS(2500);
 
     if (!devices.length) {
       console.log("No cast devices found.\n");
