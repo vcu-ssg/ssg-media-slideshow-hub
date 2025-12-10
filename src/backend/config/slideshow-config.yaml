@@ -98,10 +98,13 @@ slides:
 
 
   - id: james_river_water_level
-    type: html
-    url: "https://water.noaa.gov/gauges/rmdv2"
-    title: 
-    duration: 10
+    type: image
+    name: river_gauge
+    file: "https://water.noaa.gov/resources/hydrographs/rmdv2_hg.png"
+    duration: 10        # seconds on screen
+    effect: fade        # or whatever effect your engine supports
+    refresh: hourly     # (optional — if your loader supports it)
+
 
   - id: river_center_live_video
     type: youtube
@@ -229,7 +232,7 @@ slides:
         #panel_duration: 4
       - slides: [ google_fda_album_2025_05_20 ]
         #panel_duration: 6
-      - slides: [ collage_drive_photos, richmond_current_weather,river_center_live_video ]  # empty
+      - slides: [ james_river_water_level, richmond_current_weather,river_center_live_video ]  # empty
         #panel_duration: infinite
 
 
@@ -238,10 +241,10 @@ slideshows:
 # --- Default playlist shared by all kiosks ---
   default:
     #include: [ christmas_movie_1  ]
-    #include: [ mux_2x2_2 ]
+    include: [ mux_2x2_2 ]
     # include: [ google_fda_album_2025_05_20 ]
     #include: [ collage_drive_photos ]
-    include: [ sonos_status ]
+    #include: [ sonos_status ]
 
   scrollsaw:
     #include: [kitchen_before, kitchen_during, kitchen_after, pause_2, kitchen_animation, pause_2, powder_before, powder_during, powder_after, pause_2, bath_before, bath_during, bath_after, pause_2 ]
