@@ -1,26 +1,23 @@
 services:
   media-slideshow-hub:
-    image: ssg-media-slideshow-hub:latest
+    build: .
     container_name: media-slideshow-hub
     restart: unless-stopped
     network_mode: host
 
-    ports:
-      - "${DISPLAY_HUB_PORT:-3000}:3000"
-
+    # Host → container runtime + media storage
     volumes:
-      - ./media/photos:/app/media/photos
-      - ./media/videos:/app/media/videos
-      - ./media/movies:/app/media/movies
-      - ./media/tv:/app/media/tv
+      - ./media:/app/media
       - ./runtime/logs:/app/runtime/logs
       - ./runtime/cache:/app/runtime/cache
 
-      - ./database/config.yaml:/app/database/config.yaml:ro
       - ./public:/app/public
       - ./pages:/app/pages
 
-      # Credentials for Google API
+      - ./database/config.yaml:/app/database/config.yaml:ro
+      - /mnt/dockermedia/media/movies:/app/media/movies:ro
+
+      # Google API credentials
       - ${GOOGLE_CREDENTIALS_FILE:-/home/john/.gsecrets/gsheets-credentials.json}:/run/secrets/gsheets-credentials.json:ro
 
     env_file:
@@ -28,12 +25,13 @@ services:
       - .env
 
     environment:
-      - NODE_ENV=production
-      - PORT=${DISPLAY_HUB_PORT:-3000}
-      - CLIENT_ID=${CLIENT_ID}
-      - ENV_PATH=/app/.env
-      - GOOGLE_CREDENTIALS_PATH=/run/secrets/gsheets-credentials.json
-      - GOOGLE_API_SCOPES=${GOOGLE_API_SCOPES}
+      NODE_ENV: production
+      PORT: ${DISPLAY_HUB_PORT:-3000}
+
+      ENV_PATH: /app/.env
+      GOOGLE_CREDENTIALS_PATH: /run/secrets/gsheets-credentials.json
+      GOOGLE_API_SCOPES: ${GOOGLE_API_SCOPES}
+      CLIENT_ID: ${CLIENT_ID}
 
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
@@ -58,6 +56,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_POLL_INTERVAL=3600
-      - WATCHTOWER_LABEL_ENABLE=true
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_POLL_INTERVAL: 3600
+      WATCHTOWER_LABEL_ENABLE: "true"

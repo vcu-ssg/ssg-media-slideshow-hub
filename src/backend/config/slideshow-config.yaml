@@ -257,8 +257,8 @@ slideshows:
     #include: [front_porch_camera]
     #include: [google_fda_album_2025_05_20]
     #include: [ richmond_current_conditions ]
-    #include: [ house_mux_2x2 ]
-    include: [ collage_drive_photos ]
+    include: [ house_mux_2x2 ]
+    #include: [ collage_drive_photos ]
 
   kiosk1.local:
     include: [kitchen_before, kitchen_during, bath_during, bath_after ]
