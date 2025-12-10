@@ -391,26 +391,20 @@ async function start(){
 
       const holder = document.createElement("div");
       Object.assign(holder.style, {
-        width: "100%",
-        height: "100%",
-        background: "black",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        width: "100%", height: "100%", background: "black",
+        display: "flex", alignItems: "center", justifyContent: "center",
       });
       target.appendChild(holder);
 
       const img = document.createElement("img");
       Object.assign(img.style, {
-        maxWidth: "100%",
-        maxHeight: "100%",
-        objectFit: "contain",
+        maxWidth: "100%", maxHeight: "100%", objectFit: "contain"
       });
       holder.appendChild(img);
 
-      // Extract base filename without extension
-      const base = slide.file.replace(/^.*[\\/]/, "").split(".")[0];
-      let triedUpper = false;
+      // normalize the extension
+      const noExt = slide.file.replace(/\.[^.]+$/, ""); // strips extension only
+      let tryUpper = false;
 
       img.onload = () => {
         applyEffect(img, slide.effect, dur);
@@ -418,21 +412,19 @@ async function start(){
       };
 
       img.onerror = () => {
-        if (!triedUpper) {
-          triedUpper = true;
-          img.src = `/media/photos/${base}.JPG`;
+        if (!tryUpper) {
+          tryUpper = true;
+          img.src = `/media/photos/${noExt}.JPG`;
         } else {
           console.warn("Failed to load local image:", slide.file);
           onDone?.();
         }
       };
 
-      // FIRST attempt (lowercase extension)
-      img.src = `/media/photos/${base}.jpg`;
+      // FIRST attempt → lowercase .jpg
+      img.src = `/media/photos/${noExt}.jpg`;
       return;
     }
-
-
 
     /* ---------- COLLAGE (RESTORED — supports Google + OneDrive + folder) ---------- */
     if (

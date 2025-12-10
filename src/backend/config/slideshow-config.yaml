@@ -1,5 +1,55 @@
 # config.yaml
+
 slides:
+
+  - id: kb1
+    file: "2025-Stuart-Ave/20250301-055A2799.jpg"
+    duration: 10
+    effect: kenburns-zoom-in
+
+  - id: kb2
+    file: "2025-Stuart-Ave/20250301-055A2803.jpg"
+    duration: 10
+    effect: kenburns-zoom-in
+    
+  - id: bb1
+    file: "2025-Stuart-Ave/20250302-055A2848.jpg"
+    duration: 10
+    effect: kenburns-zoom-in
+    
+  - id: kb3
+    file: "2025-Stuart-Ave/20250302-055A2853.jpg"
+    duration: 10
+    effect: kenburns-zoom-in
+    
+  - id: bd1
+    file: "2025-Stuart-Ave/20250315-055A2900.jpg"
+    duration: 5
+    
+  - id: bd2
+    file: "2025-Stuart-Ave/20250315-055A2903.jpg"
+    duration: 5
+    
+  - id: ba1
+    file: "2025-Stuart-Ave/20250815-17-12-05EOS R3_4754.jpg"
+    duration: 10
+    effect: kenburns-zoom-out
+    
+  - id: ba2
+    file: "2025-Stuart-Ave/20250815-17-12-25EOS R3_4760.jpg"
+    duration: 10
+    effect: kenburns-zoom-out
+    
+  - id: ka1
+    file: "2025-Stuart-Ave/20250815-23-12-30EOS R3_4817.jpg"
+    duration: 10
+    effect: kenburns-zoom-out
+    
+  - id: ka2
+    file: "2025-Stuart-Ave/20250815-23-13-09EOS R3_4824.jpg"
+    duration: 10
+    effect: kenburns-zoom-out
+    
   # --- Master library of reusable slides ---
   - id: kitchen_before
     file: "kitchen_before.JPG"
@@ -31,6 +81,27 @@ slides:
     effect: fade
     duration: 15
 
+  - id: bath_during_1
+    file: bath_during_1.JPG
+    effect: fade
+    duration: 4
+
+  - id: bath_during_2
+    file: bath_during_2.JPG
+    effect: fade
+    duration: 4
+
+  - id: bath_during_3
+    file: bath_during_3.JPG
+    effect: fade
+    duration: 4
+
+  - id: bath_after
+    file: "bath_after.JPG"
+    #title: "Bath after ..."
+    effect: kenburns-zoom-out
+    duration: 10
+
   - id: kitchen_animation
     file: "kitchen_during/*.JPG"     # glob pattern expands to multiple frames
     title: "Kitchen Time-Lapse"
@@ -39,11 +110,6 @@ slides:
     fps: 3                          # frame rate (frames per second)    
     repeat: 3
 
-  - id: bath_after
-    file: "bath_after.JPG"
-    #title: "Bath after ..."
-    effect: kenburns-zoom-out
-    duration: 10
 
   - id: powder_before
     file: "powder_before.JPG"
@@ -295,4 +361,4 @@ slideshows:
     include: [ kick_six, pause_20, christmas_movie_1, pause_20 ]
 
   kitchen:
-    include: [kitchen_before, kitchen_during, kitchen_after, pause_2, powder_before, powder_during, powder_after, pause_2, bath_before, bath_during, bath_after, pause_2 ]
+    include: [ kb1, kb2, kb3, ka1, ka2, bb1, bd1, bd2, ba1, ba2]
