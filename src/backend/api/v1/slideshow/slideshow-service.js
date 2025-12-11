@@ -36,7 +36,71 @@ export async function buildSlideshowForClient(slideshow, config) {
   const findMaster = (id) => master.find((s) => s.id === id);
 
   // ------------------------------------------------------------
-  // Add slide (with recursive MUX traversal)
+  // NEW: Resolve MUX Panels — embed resolvedSlides[] inside slide
+  // ------------------------------------------------------------
+
+  async function resolveMuxPanels(slide) {
+    if (!slide.panels) return slide;
+
+    const resolvedPanels = [];
+
+    for (const panel of slide.panels) {
+      const resolved = [];
+
+      for (const sid of panel.slides || []) {
+        const raw = findMaster(sid);
+        if (!raw) continue;
+
+        let child = normalizeSlide(raw);
+        child = applyClientOverrides(child, clientCfg);
+
+        switch (child.type) {
+          case "image":
+          case "remote-image":
+          case "html":
+          case "youtube":
+          case "pause":
+          case "multi-frame":
+            resolved.push(child);
+            break;
+
+          case "folder":
+            resolved.push(...expandLocalFolder(child));
+            break;
+
+          case "google":
+          case "google-drive":
+            resolved.push(...(await expandGoogle(child)));
+            break;
+
+          case "onedrive":
+          case "one-drive":
+            resolved.push(...(await expandOneDrive(child)));
+            break;
+
+          case "movie":
+            resolved.push(await expandMovie(child));
+            break;
+
+          default:
+            resolved.push(child);
+        }
+      }
+
+      resolvedPanels.push({
+        ...panel,
+        resolvedSlides: resolved,
+      });
+    }
+
+    return {
+      ...slide,
+      panels: resolvedPanels,
+    };
+  }
+
+  // ------------------------------------------------------------
+  // Add slide (single instance)
   // ------------------------------------------------------------
 
   const addSlideOnce = async (slideId) => {
@@ -46,54 +110,41 @@ export async function buildSlideshowForClient(slideshow, config) {
     const raw = findMaster(slideId);
     if (!raw) return;
 
-    // normalize + client overrides
     let slide = normalizeSlide(raw);
     slide = applyClientOverrides(slide, clientCfg);
 
     const type = (slide.type || "").toLowerCase();
 
     switch (type) {
-      // --------------------------------------------------------
-      // MULTI-FRAME (single slide object with frames[])
-      // --------------------------------------------------------
+      // MULTI-FRAME
       case "multi-frame":
         expanded.push(slide);
         return;
 
-      // --------------------------------------------------------
-      // SIMPLE IMAGE (no expansion)
-      // --------------------------------------------------------
+      // SIMPLE IMAGES
       case "image":
       case "remote-image":
         expanded.push(slide);
         return;
 
-      // --------------------------------------------------------
       // HTML
-      // --------------------------------------------------------
       case "html":
         expanded.push(expandHtml(slide));
         return;
 
-      // --------------------------------------------------------
       // YOUTUBE
-      // --------------------------------------------------------
       case "youtube":
         expanded.push(expandYouTube(slide));
         return;
 
-      // --------------------------------------------------------
       // LOCAL FOLDER
-      // --------------------------------------------------------
       case "folder": {
         const list = expandLocalFolder(slide);
         replaceOrAppend(expanded, slide.id, list);
         return;
       }
 
-      // --------------------------------------------------------
       // GOOGLE DRIVE
-      // --------------------------------------------------------
       case "google":
       case "google-drive": {
         const list = await expandGoogle(slide);
@@ -101,9 +152,7 @@ export async function buildSlideshowForClient(slideshow, config) {
         return;
       }
 
-      // --------------------------------------------------------
       // ONEDRIVE
-      // --------------------------------------------------------
       case "onedrive":
       case "one-drive": {
         const list = await expandOneDrive(slide);
@@ -111,33 +160,21 @@ export async function buildSlideshowForClient(slideshow, config) {
         return;
       }
 
-      // --------------------------------------------------------
       // MOVIE
-      // --------------------------------------------------------
       case "movie": {
-          const m = await expandMovie(slide);
-          expanded.push(m);
-          return;
-      }      
-
-      // --------------------------------------------------------
-      // MUX — recursively add panel slides
-      // --------------------------------------------------------
-      case "mux": {
-        expanded.push(slide);
-
-        const childIds =
-          slide.panels?.flatMap((p) => p.slides || []) || [];
-
-        for (const cid of childIds) {
-          await addSlideOnce(cid);
-        }
+        const m = await expandMovie(slide);
+        expanded.push(m);
         return;
       }
 
-      // --------------------------------------------------------
+      // MUX
+      case "mux": {
+        const resolved = await resolveMuxPanels(slide);
+        expanded.push(resolved);
+        return;
+      }
+
       // PAUSE
-      // --------------------------------------------------------
       case "pause":
         expanded.push({
           id: slide.id,
@@ -146,13 +183,16 @@ export async function buildSlideshowForClient(slideshow, config) {
         });
         return;
 
-      // --------------------------------------------------------
       default:
         console.warn(`⚠️ Unknown slide type '${slide.type}'`);
         expanded.push(slide);
         return;
     }
   };
+
+  // ------------------------------------------------------------
+  // Add slide (instance mode, duplicates allowed)
+  // ------------------------------------------------------------
 
   async function addSlideInstance(slideId) {
     const raw = findMaster(slideId);
@@ -164,7 +204,6 @@ export async function buildSlideshowForClient(slideshow, config) {
     const type = (slide.type || "").toLowerCase();
 
     switch (type) {
-
       case "movie": {
         const m = await expandMovie(slide);
         expanded.push(m);
@@ -214,11 +253,8 @@ export async function buildSlideshowForClient(slideshow, config) {
       }
 
       case "mux": {
-        expanded.push(slide);
-        const childIds = slide.panels?.flatMap(p => p.slides || []) || [];
-        for (const cid of childIds) {
-          await addSlideOnce(cid);
-        }
+        const resolved = await resolveMuxPanels(slide);
+        expanded.push(resolved);
         return;
       }
 
@@ -228,13 +264,12 @@ export async function buildSlideshowForClient(slideshow, config) {
     }
   }
 
-
   // Expand entry slides
   for (const id of entryIds) {
     await addSlideInstance(id);
   }
 
-  // Inject Google / OneDrive images into MUX panels
+  // Inject Google / OneDrive images into MUX (kept for backwards compatibility)
   await injectPanelAssets(expanded);
 
   return expanded;
@@ -250,7 +285,7 @@ function replaceOrAppend(arr, id, items) {
 }
 
 // ------------------------------------------------------------
-// INJECT PANEL ASSETS (Google/OneDrive)
+// INJECT PANEL ASSETS (legacy MUX injection - retained)
 // ------------------------------------------------------------
 
 async function injectPanelAssets(expanded) {
@@ -259,13 +294,11 @@ async function injectPanelAssets(expanded) {
 
     for (const panel of slide.panels) {
       for (const sid of panel.slides || []) {
-        // Find matching expanded slide OR any with parentId = sid
         const ref = expanded.find(
           (s) => s.id === sid || s.parentId === sid
         );
         if (!ref) continue;
 
-        // Google
         if (ref.type === "google-drive" && !ref.images) {
           try {
             const items = await listGoogleImages({
@@ -280,7 +313,6 @@ async function injectPanelAssets(expanded) {
           }
         }
 
-        // OneDrive
         if (ref.type === "one-drive" && !ref.images) {
           try {
             const items = await listOneDriveImages({
@@ -309,7 +341,6 @@ function expandLocalFolder(slide) {
   try {
     const files = listLocalPhotos(slide.path);
 
-    // Collage → one slide
     if (slide.effect === "collage") {
       return [
         {
@@ -323,7 +354,6 @@ function expandLocalFolder(slide) {
       ];
     }
 
-    // Normal: expand into multiple slides
     return files.map((file, idx) => ({
       ...slide,
       id: `${slide.id}__${idx}`,
@@ -349,7 +379,6 @@ async function expandGoogle(slide) {
       order: slide.order || "sorted",
     });
 
-    // Collage → single slide
     if (slide.effect === "collage") {
       return [
         {
@@ -364,7 +393,6 @@ async function expandGoogle(slide) {
       ];
     }
 
-    // Multiple slides
     return items.map((file, idx) => ({
       ...slide,
       id: `${slide.id}__${idx}`,
@@ -435,13 +463,14 @@ async function expandMovie(slide) {
     return {
       ...slide,
       type: "movie",
-      file: resolved,      // absolute or URL path to movie file
-      folder: slide.folder
+      file: resolved,
+      folder: slide.folder,
     };
-
   } catch (err) {
-    console.error(`⚠️ Movie expand failed for folder '${slide.folder}': ${err.message}`);
-    return slide;  // safe fallback
+    console.error(
+      `⚠️ Movie expand failed for folder '${slide.folder}': ${err.message}`
+    );
+    return slide;
   }
 }
 
