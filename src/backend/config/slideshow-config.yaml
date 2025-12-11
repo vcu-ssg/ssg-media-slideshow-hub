@@ -102,6 +102,7 @@ slides:
     effect: kenburns-zoom-out
     duration: 10
 
+
   - id: kitchen_animation
     file: "kitchen_during/*.JPG"     # glob pattern expands to multiple frames
     title: "Kitchen Time-Lapse"
@@ -268,6 +269,27 @@ slides:
     imageInEffect: cut       # cut | fade | dissolve (more below)
     imageOutEffect: fade
 
+  - id: goldman1
+    file: "contractors/Matt-Goldman.png"
+    duration: 20
+    effect: none
+
+  - id: hager1
+    file: "contractors/Jason-Hager.png"
+    duration: 20
+    effect: none
+
+  - id: lewis1
+    file: "contractors/William-Lewis.png"
+    duration: 20
+    effect: none
+
+  - id: modern1
+    type: webpage
+    url: "https://moderntraditionsinteriors.com/home"
+    duration: 20        # how long to show it before advancing
+    effect: none        # iframe doesn't animate, but you can keep this
+
 
   - id: house_mux_2x2
     type: mux
@@ -301,6 +323,18 @@ slides:
       - slides: [ james_river_water_level, richmond_current_weather,river_center_live_video ]  # empty
         #panel_duration: infinite
 
+# - rows then columns.  1 row x 2 columns
+
+  - id: business_cards
+    type: mux
+    layout: 2x2
+    duration: 15
+    hide_panel_titles: true
+    panels:
+      - slides: [ modern1 ]
+      - slides: [ lewis1 ]
+      - slides: [ hager1 ]
+      - slides: [ goldman1 ]
 
 slideshows:
 
@@ -361,4 +395,4 @@ slideshows:
     include: [ kick_six, pause_20, christmas_movie_1, pause_20 ]
 
   kitchen:
-    include: [ kb1, kb2, kb3, ka1, ka2, bb1, bd1, bd2, ba1, ba2]
+    include: [ business_cards, pause_1, kb3,ka1,ka2, pause_1, bb1,ba1,ba2, pause_1 ]

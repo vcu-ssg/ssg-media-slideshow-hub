@@ -378,14 +378,40 @@ async function start(){
       return;
     }
 
-    /* ---------- LOCAL STILL IMAGE ---------- */
+    /* ---------- WEB PAGE (IFRAME WRAPPER) ---------- */
+    if (type === "webpage" && slide.url) {
+      const dur = slide.duration > 0 ? slide.duration : 10;
+
+      const frame = document.createElement("iframe");
+      Object.assign(frame.style, {
+        width: "100%",
+        height: "100%",
+        border: "none",
+        background: "black"
+      });
+
+      frame.src = slide.url;
+      target.appendChild(frame);
+
+      // Auto-advance after duration
+      setTimeout(() => {
+        frame.remove();
+        onDone?.();
+      }, dur * 1000);
+
+      return;
+    }
+
+
+    /* ---------- LOCAL STILL IMAGE (FIXED: preserves folder + extension) ---------- */
     if (
       slide.file &&
       !slide.file.includes("*") &&
       !slide.file.toLowerCase().endsWith(".mp4") &&
       !slide.file.toLowerCase().endsWith(".mkv") &&
       !slide.file.toLowerCase().endsWith(".webm") &&
-      type !== "movie"
+      type !== "movie" &&
+      type !== "webpage"          // <-- prevent stealing webpage slides
     ) {
       const dur = slide.duration > 0 ? slide.duration : 5;
 
@@ -402,9 +428,15 @@ async function start(){
       });
       holder.appendChild(img);
 
-      // normalize the extension
-      const noExt = slide.file.replace(/\.[^.]+$/, ""); // strips extension only
-      let tryUpper = false;
+      // Full path including folder
+      const original = slide.file;
+      const ext = original.substring(original.lastIndexOf(".") + 1);
+      const base = original.substring(0, original.lastIndexOf("."));
+
+      const lower = `/media/photos/${base}.${ext.toLowerCase()}`;
+      const upper = `/media/photos/${base}.${ext.toUpperCase()}`;
+
+      let triedUpper = false;
 
       img.onload = () => {
         applyEffect(img, slide.effect, dur);
@@ -412,27 +444,17 @@ async function start(){
       };
 
       img.onerror = () => {
-        if (!tryUpper) {
-          tryUpper = true;
-          img.src = `/media/photos/${noExt}.JPG`;
+        if (!triedUpper) {
+          triedUpper = true;
+          img.src = upper;   // try uppercase extension
         } else {
           console.warn("Failed to load local image:", slide.file);
           onDone?.();
         }
       };
 
-      // FIRST attempt → lowercase .jpg
-      img.src = `/media/photos/${noExt}.jpg`;
+      img.src = lower;   // FIRST attempt = actual lowercase file
       return;
-    }
-
-    /* ---------- COLLAGE (RESTORED — supports Google + OneDrive + folder) ---------- */
-    if (
-      slide.effect === "collage" &&
-      slide.images?.length &&
-      (type === "google-drive" || type === "one-drive" || type === "image-folder")
-    ) {
-      return renderCollage(target, slide, onDone);
     }
 
     /* ---------- GOOGLE / ONEDRIVE (non-collage) ---------- */
@@ -491,57 +513,98 @@ async function start(){
       return;
     }
 
-    /* ---------- MUX ---------- */
-    if(type==="mux"){
-      const grid=document.createElement("div");
-      grid.className="mux-grid";
+    /* ---------- MUX (uses panel.resolvedSlides) ---------- */
+    if (type === "mux") {
+      const grid = document.createElement("div");
+      grid.className = "mux-grid";
 
-      const [rows,cols]=slide.layout.split("x").map(Number);
-      grid.style.gridTemplateRows=`repeat(${rows},1fr)`;
-      grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+      const [rows, cols] = slide.layout.split("x").map(Number);
+      grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+      grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
       target.appendChild(grid);
 
-      slide.panels.forEach((panel,pi)=>{
-        const cell=document.createElement("div");
-        cell.className="mux-cell";
+      let running = true;
+      let finished = false;
 
-        const inner=document.createElement("div");
-        inner.className="mux-inner";
+      // Duration handling
+      const isInfinite = String(slide.duration).toLowerCase() === "infinite";
+      const durationMs = isInfinite ? null : (Number(slide.duration) || 15) * 1000;
+
+      if (!isInfinite) {
+        setTimeout(() => {
+          running = false;
+          if (!finished) {
+            finished = true;
+            onDone?.();
+          }
+        }, durationMs);
+      }
+
+      slide.panels.forEach((panel, pi) => {
+        const cell = document.createElement("div");
+        cell.className = "mux-cell";
+
+        const inner = document.createElement("div");
+        inner.className = "mux-inner";
 
         cell.appendChild(inner);
         grid.appendChild(cell);
 
-        const {x,y}=parseAlign(panel.align);
-        inner.dataset.scale=panel.scale||1;
+        // Positioning logic
+        const { x, y } = parseAlign(panel.align);
+        inner.dataset.scale = panel.scale || 1;
 
-        const pos=()=>{
+        const applyPos = () => {
           inner.style.justifyContent =
-            x==="left"?"flex-start": x==="right"?"flex-end":"center";
+            x === "left" ? "flex-start" :
+            x === "right" ? "flex-end" :
+            "center";
+
           inner.style.alignItems =
-            y==="top"?"flex-start": y==="bottom"?"flex-end":"center";
-          inner.style.transform=`scale(${inner.dataset.scale})`;
+            y === "top" ? "flex-start" :
+            y === "bottom" ? "flex-end" :
+            "center";
+
+          inner.style.transform = `scale(${inner.dataset.scale})`;
         };
-        pos();
-        new ResizeObserver(pos).observe(cell);
 
-        const deck=(panel.slides||[])
-          .flatMap(id => all.filter(s => s.id===id || s.parentId===id));
+        applyPos();
+        new ResizeObserver(applyPos).observe(cell);
 
-        if(!deck.length) return;
+        // ⭐ NEW: Use resolvedSlides sent by backend
+        const deck = panel.resolvedSlides || [];
 
-        (async()=>{
-          await new Promise(r=>setTimeout(r,pi*250));
-          while(true){
-            for(const s of deck){
-              inner.innerHTML="";
-              await new Promise(done =>
-                renderSlide(inner,{...s,suppressTitle:true},all,done)
-              );
+        if (!deck.length) return;
+
+        // Panel animation loop
+        (async () => {
+          await new Promise(r => setTimeout(r, pi * 250)); // stagger startup
+
+          while (running) {
+            for (const s of deck) {
+              if (!running) break;
+
+              inner.innerHTML = "";
+
+              await new Promise(done => {
+                renderSlide(
+                  inner,
+                  { ...s, suppressTitle: true },
+                  all,  // still passed, but not used for MUX panels now
+
+                  // Safety wrapper
+                  () => {
+                    if (!running) return;
+                    done();
+                  }
+                );
+              });
             }
           }
         })();
       });
+
       return;
     }
 

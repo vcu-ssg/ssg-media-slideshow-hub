@@ -50,63 +50,99 @@ let _autoId = 1;
 export function normalizeSlide(slide) {
   if (!slide || typeof slide !== "object") return null;
 
-  // Clone before mutation
+  // Clone before mutation (MUX-safe)
   const s = { ...slide };
 
-  // --------------------------------------------
-  // ID — keep original ID if provided (MUX relies on IDs)
-  // --------------------------------------------
+  // ------------------------------------------------------------
+  // ID — required for MUX and indexing
+  // ------------------------------------------------------------
   if (!s.id) s.id = `slide_${_autoId++}`;
 
-  // --------------------------------------------
-  // Type detection
-  // Order matters: more specific → more general
-  // --------------------------------------------
+  // ------------------------------------------------------------
+  // Extract raw type (lowercased)
+  // ------------------------------------------------------------
   const rawType = (s.type || "").toLowerCase();
 
-  let type = rawType || "image";
-
-  // Highest-precedence explicit types
-  if (["mux", "youtube", "html", "folder", "movie", "pause"].includes(type)) {
-    s.type = type;
+  // ------------------------------------------------------------
+  // EXPLICIT TYPES (highest priority — never override)
+  // ------------------------------------------------------------
+  if (["mux", "youtube", "html", "folder", "movie", "pause"].includes(rawType)) {
+    s.type = rawType;
     applyDefaults(s);
     return s;
   }
 
-  // Google / OneDrive explicit types
   if (rawType === "google-drive" || rawType === "google") {
     s.type = "google-drive";
     applyDefaults(s);
     return s;
   }
+
   if (rawType === "one-drive" || rawType === "onedrive") {
     s.type = "one-drive";
     applyDefaults(s);
     return s;
   }
 
-  // Remote URL
+  // ------------------------------------------------------------
+  // WEBPAGE DETECTION
+  //
+  // Two cases:
+  //   1. YAML explicitly uses: type: webpage
+  //   2. Slide has url: ... AND does NOT have a file: field
+  //
+  // This fixes your issue.
+  // ------------------------------------------------------------
+  if (rawType === "webpage" || (s.url && !s.file)) {
+    s.type = "webpage";
+    applyDefaults(s);
+    return s;
+  }
+
+  // ------------------------------------------------------------
+  // REMOTE IMAGE (file begins with http/https)
+  // ------------------------------------------------------------
   if (s.file && /^https?:\/\//i.test(s.file)) {
     s.type = "remote-image";
     applyDefaults(s);
     return s;
   }
 
-  // Multi-frame: *.JPG, *.png, etc.
+  // ------------------------------------------------------------
+  // MULTI-FRAME (“file: *.jpg”, “*.png”, etc.)
+  // ------------------------------------------------------------
   if (s.file && s.file.includes("*")) {
     s.type = "multi-frame";
     applyDefaults(s);
     return s;
   }
 
-  // Movie URLs or video extension
+  // ------------------------------------------------------------
+  // BASIC VIDEO (rarely used: type: video)
+  // ------------------------------------------------------------
   if (rawType === "video") {
     s.type = "video";
     applyDefaults(s);
     return s;
   }
 
-  // Single still local image
+  // ------------------------------------------------------------
+  // FALLBACK — LOCAL IMAGE
+  //
+  // This is the DEFAULT ONLY if:
+  //   • slide has file: ..., AND
+  //   • is not a video/multi-frame/remote-image
+  // ------------------------------------------------------------
+  if (s.file) {
+    s.type = "image";
+    applyDefaults(s);
+    return s;
+  }
+
+  // ------------------------------------------------------------
+  // FINAL FALLBACK (should rarely occur)
+  // Treat unknown/no-file slides as simple images
+  // ------------------------------------------------------------
   s.type = "image";
   applyDefaults(s);
   return s;

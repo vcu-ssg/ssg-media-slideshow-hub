@@ -3,8 +3,8 @@
 # -------------------------------------------
 
 # Default settings
-APP_NAME := ssg-kiosk-photo-player
-CONTAINER := photo-kiosk
+APP_NAME := ssg-media-slideshow-hub
+CONTAINER := media-hub
 PORT := 3000
 
 SERVER_HOST := localhost

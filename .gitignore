@@ -48,10 +48,10 @@ Desktop.ini
 # Media (large external assets should NOT be committed)
 # ------------------------------------------------------------
 # 1. Completely IGNORE real user media from NFS/QNAP/etc.
-media/photos/**
-media/videos/**
-media/movies/**
-media/tv/**
+#media/photos/**
+#media/videos/**
+#media/movies/**
+#media/tv/**
 
 # 2. EXCEPT: keep the directory structure
 !media/photos/.gitkeep
