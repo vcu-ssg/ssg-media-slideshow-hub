@@ -274,6 +274,16 @@ slides:
     duration: 20
     effect: none
 
+  - id: hager1
+    file: "contractors/Jason-Hager.png"
+    duration: 20
+    effect: none
+
+  - id: lewis1
+    file: "contractors/William-Lewis.png"
+    duration: 20
+    effect: none
+
   - id: modern1
     type: webpage
     url: "https://moderntraditionsinteriors.com/home"
@@ -315,13 +325,15 @@ slides:
 
 # - rows then columns.  1 row x 2 columns
 
-  - id: kitchen_2x1
+  - id: business_cards
     type: mux
-    layout: 2x1
+    layout: 2x2
     duration: 15
     hide_panel_titles: true
     panels:
       - slides: [ modern1 ]
+      - slides: [ lewis1 ]
+      - slides: [ hager1 ]
       - slides: [ goldman1 ]
 
 slideshows:
@@ -383,4 +395,4 @@ slideshows:
     include: [ kick_six, pause_20, christmas_movie_1, pause_20 ]
 
   kitchen:
-    include: [ kb3,ka1,ka2, pause_1, bb1,ba1,ba2, pause_1]
+    include: [ business_cards, pause_1, kb3,ka1,ka2, pause_1, bb1,ba1,ba2, pause_1 ]
