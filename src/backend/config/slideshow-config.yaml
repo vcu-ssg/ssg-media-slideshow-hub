@@ -284,6 +284,12 @@ slides:
     duration: 20
     effect: none
 
+  - id: theofanos1
+    file: "contractors/Stephanie-Theofanos.png"
+    duration: 20
+    effect: none
+
+
   - id: modern1
     type: webpage
     url: "https://moderntraditionsinteriors.com/home"
@@ -331,7 +337,7 @@ slides:
     duration: 15
     hide_panel_titles: true
     panels:
-      - slides: [ modern1 ]
+      - slides: [ theofanos1 ]
       - slides: [ lewis1 ]
       - slides: [ hager1 ]
       - slides: [ goldman1 ]
